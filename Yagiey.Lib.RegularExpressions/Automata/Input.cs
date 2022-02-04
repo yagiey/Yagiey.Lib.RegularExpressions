@@ -2,7 +2,7 @@
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
-	internal struct Input : IComparable<Input>
+	internal struct Input : IComparable<Input>, IEquatable<Input>
 	{
 		public static Input Empty = new();
 
@@ -27,6 +27,11 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		{
 			Character = ch;
 			IsEmpty = false;
+		}
+
+		public bool Equals(Input other)
+		{
+			return this == other;
 		}
 
 		public override bool Equals(object? obj)

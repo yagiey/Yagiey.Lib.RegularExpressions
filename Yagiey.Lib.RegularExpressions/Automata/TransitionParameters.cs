@@ -1,8 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
-	internal struct TransitionParameters
+	internal struct TransitionParameters : IEquatable<TransitionParameters>
 	{
 		public int Node
 		{
@@ -20,6 +21,11 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		{
 			Node = node;
 			Input = input;
+		}
+
+		public bool Equals(TransitionParameters other)
+		{
+			return this == other;
 		}
 
 		public override bool Equals([NotNullWhen(true)] object? obj)
