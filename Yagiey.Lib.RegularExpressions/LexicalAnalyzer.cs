@@ -25,7 +25,7 @@ namespace Yagiey.Lib.RegularExpressions
 		{
 			_special = new SpecialCharacter();
 			_escape = new Escape();
-			_chara = new Automata.Character();
+			_chara = new Character();
 			_automata = Enumerable.Empty<IDeterministicFiniteAutomaton<char>>();
 
 			Source = source;
