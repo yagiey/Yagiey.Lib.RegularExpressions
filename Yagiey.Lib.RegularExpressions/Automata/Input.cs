@@ -6,7 +6,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 	{
 		public static Input Empty = new();
 
-		public bool IsEmpty
+		public InputType InputType
 		{
 			get;
 			private set;
@@ -18,15 +18,39 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			private set;
 		}
 
+		public bool IsEmpty
+		{
+			get
+			{
+				return InputType == InputType.Empty;
+			}
+		}
+
+		public bool IsAny
+		{
+			get
+			{
+				return InputType == InputType.Any;
+			}
+		}
+
+		public bool IsMatch
+		{
+			get
+			{
+				return InputType == InputType.Match;
+			}
+		}
+
 		public Input() : this(default)
 		{
-			IsEmpty = true;
+			InputType = InputType.Empty;
 		}
 
 		public Input(char ch)
 		{
 			Character = ch;
-			IsEmpty = false;
+			InputType = InputType.Match;
 		}
 
 		public bool Equals(Input other)
@@ -51,16 +75,25 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 
 		public static bool operator ==(Input lhs, Input rhs)
 		{
-			if (lhs.IsEmpty && rhs.IsEmpty)
+			if (lhs.InputType != rhs.InputType)
+			{
+				return false;
+			}
+			else if (lhs.InputType == InputType.Empty)
 			{
 				return true;
 			}
-			else if (!lhs.IsEmpty && !rhs.IsEmpty && lhs.Character == rhs.Character)
+			else if (lhs.InputType == InputType.Any)
+			{
+				return true;
+			}
+			else if (lhs.InputType == InputType.Match && lhs.Character == rhs.Character)
 			{
 				return true;
 			}
 			return false;
 		}
+
 		public static bool operator !=(Input lhs, Input rhs)
 		{
 			bool eq = lhs == rhs;
@@ -69,14 +102,20 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 
 		public override int GetHashCode()
 		{
-			return IsEmpty.GetHashCode() ^ Character.GetHashCode();
+			int type = (int)InputType;
+			int ch = Character;
+			return (type << 16) | ch;
 		}
 
 		public override string ToString()
 		{
-			if (IsEmpty)
+			if (InputType == InputType.Empty)
 			{
 				return "<E>";
+			}
+			else if (InputType == InputType.Any)
+			{
+				return "'.'";
 			}
 			else
 			{
@@ -86,21 +125,17 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 
 		public int CompareTo(Input other)
 		{
-			// if (this < other) return -1
-			// else if (other < this) return 1
-			// else return 0
-
-			if (IsEmpty && other.IsEmpty)
+			if (InputType != other.InputType)
+			{
+				return InputType.CompareTo(other.InputType);
+			}
+			else if (InputType == InputType.Empty)
 			{
 				return 0;
 			}
-			else if (IsEmpty && !other.IsEmpty)
+			else if (InputType == InputType.Any)
 			{
-				return -1;
-			}
-			else if (!IsEmpty && other.IsEmpty)
-			{
-				return 1;
+				return 0;
 			}
 			else
 			{
