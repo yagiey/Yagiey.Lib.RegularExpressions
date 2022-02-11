@@ -4,6 +4,6 @@
 	{
 		Empty,
 		Any,
-		Match,
+		Positive,
 	}
 }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Yagiey.Lib.RegularExpressions.Automata;
 using Yagiey.Lib.RegularExpressions.Expressions;
 
@@ -20,7 +19,7 @@ namespace Yagiey.Lib.RegularExpressions
 	/// 
 	/// all_characters = __all_characters__except(spaceial_characters) | escape
 	/// escape = backslash, spaceial_characters
-	/// spaceial_characters = backslash | vertical_bar | asterisk | lparen | rparen | question
+	/// spaceial_characters = backslash | vertical_bar | asterisk | lparen | rparen | question | dot
 	/// 
 	/// backslash = '\'
 	/// vertical_bar = '|'
@@ -28,6 +27,7 @@ namespace Yagiey.Lib.RegularExpressions
 	/// lparen = '('
 	/// rparen = ')'
 	/// question = '?'
+	/// dot = '.'
 	/// </definition>
 	internal class Parser
 	{
@@ -252,19 +252,28 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 
 			Token curr = itorToken.Current.Item1;
-			if (curr.TokenType == TokenType.Character)
+			if (curr.TokenType == TokenType.Character || curr.TokenType == TokenType.AnyButReturn)
 			{
-				char ch = curr.Source[0];
-
 				itorID.MoveNext();
 				int start = itorID.Current;
 				itorID.MoveNext();
 				int end = itorID.Current;
 
-				IExpression expr = new Expressions.Character(ch, start, end);
+				Input input;
+				if (curr.TokenType == TokenType.Character)
+				{
+					char ch = curr.Source[0];
+					input = new Input(ch);
+				}
+				else
+				{
+					input = new Input(InputType.Any);
+				}
+
+				IExpression expr = new Expressions.Character(input, start, end);
 
 				int[] ends = new int[] { end };
-				NondeterministicFiniteAutomaton.AddTransition(transitionMap, start, new Input(ch), ends);
+				NondeterministicFiniteAutomaton.AddTransition(transitionMap, start, input, ends);
 
 				return new ParserReturnValue(start, end, expr);
 			}

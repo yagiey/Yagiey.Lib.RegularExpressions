@@ -12,6 +12,7 @@ namespace Yagiey.Lib.RegularExpressions
 		public const char VerticalBar = '|';
 		public const char Asterisk = '*';
 		public const char Question = '?';
+		public const char Dot = '.';
 
 		public static IEnumerable<char> SpecialCharacters
 		{
@@ -24,6 +25,7 @@ namespace Yagiey.Lib.RegularExpressions
 					.Append(VerticalBar)
 					.Append(Asterisk)
 					.Append(Question)
+					.Append(Dot)
 					.ToArray();
 			}
 		}

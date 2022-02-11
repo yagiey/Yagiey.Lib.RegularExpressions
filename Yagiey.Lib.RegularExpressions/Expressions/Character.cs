@@ -1,10 +1,11 @@
 ﻿using System;
+using Yagiey.Lib.RegularExpressions.Automata;
 
 namespace Yagiey.Lib.RegularExpressions.Expressions
 {
 	internal class Character : IExpression
 	{
-		public char Char
+		public Input Input
 		{
 			get;
 			private set;
@@ -22,16 +23,16 @@ namespace Yagiey.Lib.RegularExpressions.Expressions
 			private set;
 		}
 
-		public Character(char ch, int start, int end)
+		public Character(Input input, int start, int end)
 		{
-			Char = ch;
+			Input = input;
 			Start = start;
 			End = end;
 		}
 
 		public override string ToString()
 		{
-			return Char.ToString();
+			return Input.ToString();
 		}
 	}
 }

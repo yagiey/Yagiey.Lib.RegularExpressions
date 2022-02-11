@@ -89,6 +89,10 @@ namespace Yagiey.Lib.RegularExpressions
 				{
 					type = TokenType.Option;
 				}
+				else if (ch == Constants.Dot)
+				{
+					type = TokenType.AnyButReturn;
+				}
 				else
 				{
 					type = TokenType.Repeat0;

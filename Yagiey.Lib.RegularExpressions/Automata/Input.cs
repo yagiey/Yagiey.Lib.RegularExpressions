@@ -34,23 +34,46 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			}
 		}
 
-		public bool IsMatch
+		public bool IsPositive
 		{
 			get
 			{
-				return InputType == InputType.Match;
+				return InputType == InputType.Positive;
 			}
 		}
 
-		public Input() : this(default)
+		public Input() : this(InputType.Empty, default)
 		{
-			InputType = InputType.Empty;
 		}
 
-		public Input(char ch)
+		public Input(InputType inputType) : this(inputType, default)
+		{
+		}
+
+		public Input(char ch) : this(InputType.Positive, ch)
+		{
+		}
+
+		public Input(InputType inputType, char ch)
 		{
 			Character = ch;
-			InputType = InputType.Match;
+			InputType = inputType;
+		}
+
+		public bool Match(char ch)
+		{
+			if (IsPositive)
+			{
+				return ch == Character;
+			}
+			else if(IsAny)
+			{
+				return ch != '\n';
+			}
+			else
+			{
+				return true;
+			}
 		}
 
 		public bool Equals(Input other)
@@ -87,7 +110,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			{
 				return true;
 			}
-			else if (lhs.InputType == InputType.Match && lhs.Character == rhs.Character)
+			else if (lhs.InputType == InputType.Positive && lhs.Character == rhs.Character)
 			{
 				return true;
 			}

@@ -7,6 +7,7 @@
 		Option,
 		LParen,
 		RParen,
+		AnyButReturn,
 		Character,
 	}
 }

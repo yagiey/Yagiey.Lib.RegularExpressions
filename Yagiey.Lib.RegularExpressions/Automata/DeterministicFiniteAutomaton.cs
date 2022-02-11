@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
@@ -61,30 +62,56 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			_isError = false;
 		}
 
-		public void MoveNext(char input)
+		public void MoveNext(char ch)
 		{
-			if (IsError())
+			var result = GetNext(ch, _state, TransitionMap, IsError());
+			if (!result.Item1)
 			{
+				_isError = true;
 				return;
 			}
 
-			bool result = TransitionMap.TryGetValue(_state, out IDictionary<Input, int>? dic);
+			_state = result.Item2;
+		}
+
+		private static Tuple<bool, int> GetNext(char ch, int current, DFATransitionMap transitionMap, bool isError)
+		{
+			if (isError)
+			{
+				return Tuple.Create(false, 0);
+			}
+
+			bool result = transitionMap.TryGetValue(current, out IDictionary<Input, int>? dic);
 			if (!result || dic == null)
 			{
-				_isError = true;
+				return Tuple.Create(false, 0);
 			}
 			else
 			{
-				result = dic.TryGetValue(new Input(input), out int dest);
-				if (!result)
+				result = dic.TryGetValue(new Input(ch), out int dest);
+				if (result)
 				{
-					_isError = true;
+					return Tuple.Create(true, dest);
 				}
 				else
 				{
-					_state = dest;
+					var dic2 = GetTransitionsExceptPositive(dic);
+					foreach (var pair in dic2)
+					{
+						Input key = pair.Key;
+						if (key.Match(ch))
+						{
+							return Tuple.Create(true, pair.Value);
+						}
+					}
+					return Tuple.Create(false, 0);
 				}
 			}
+		}
+
+		private static IDictionary<Input, int> GetTransitionsExceptPositive(IDictionary<Input, int> map)
+		{
+			return new Dictionary<Input, int>(map.Where(_ => !_.Key.IsPositive && !_.Key.IsEmpty));
 		}
 
 		public bool IsInitialState()
@@ -111,27 +138,10 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			return _isError;
 		}
 
-		public bool IsNextError(char input)
+		public bool IsNextError(char ch)
 		{
-			if (IsError())
-			{
-				return true;
-			}
-
-			bool result = TransitionMap.TryGetValue(_state, out IDictionary<Input, int>? dic);
-			if (!result || dic == null)
-			{
-				return true;
-			}
-			else
-			{
-				result = dic.TryGetValue(new Input(input), out _);
-				if (!result)
-				{
-					return true;
-				}
-			}
-			return false;
+			var result = GetNext(ch, _state, TransitionMap, IsError());
+			return !result.Item1;
 		}
 
 		#endregion
