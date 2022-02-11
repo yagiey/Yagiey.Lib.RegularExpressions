@@ -5,23 +5,25 @@ using Yagiey.Lib.RegularExpressions.Automata;
 
 namespace Yagiey.Lib.RegularExpressions
 {
+	using DFA = DeterministicFiniteAutomaton;
 	using DFATransitionMap = IDictionary<int, IDictionary<Input, int>>;
+	using NFA = NondeterministicFiniteAutomaton;
 	using NFATransitionMap = IDictionary<int, IDictionary<Input, IEnumerable<int>>>;
 
 	public class RegularExpression : IDeterministicFiniteAutomaton<char>
 	{
-		private readonly DeterministicFiniteAutomaton _dfa;
+		private readonly DFA _dfa;
 
 		public RegularExpression(string source)
 		{
 			Parser parser = new(source);
-			NondeterministicFiniteAutomaton nfa = ToNFA(parser.EpsilonNFA);
+			NFA nfa = ToNFA(parser.EpsilonNFA);
 			_dfa = ToDFA(nfa);
 		}
 
 		#region conversion εNFA to NFA
 
-		private static NondeterministicFiniteAutomaton ToNFA(NondeterministicFiniteAutomaton epsilonNFA)
+		private static NFA ToNFA(NFA epsilonNFA)
 		{
 			int startNode = epsilonNFA.StartNode;
 			IEnumerable<int> acceptingNodeSet = epsilonNFA.AcceptingNodeSet;
@@ -61,11 +63,11 @@ namespace Yagiey.Lib.RegularExpressions
 					{
 						continue;
 					}
-					NondeterministicFiniteAutomaton.AddTransition(newTransitionMap, node, input, destination);
+					NFA.AddTransition(newTransitionMap, node, input, destination);
 				}
 			}
 
-			return new NondeterministicFiniteAutomaton(startNode, newAcceptingNodeSet, newTransitionMap);
+			return new NFA(startNode, newAcceptingNodeSet, newTransitionMap);
 		}
 
 		private static IEnumerable<int> EpsilonClosure(int node, NFATransitionMap transitions, IDictionary<int, IEnumerable<int>> eClosure)
@@ -171,7 +173,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 		#region conversion NFA to DFA
 
-		private static DeterministicFiniteAutomaton ToDFA(NondeterministicFiniteAutomaton nfa)
+		private static DFA ToDFA(NFA nfa)
 		{
 			IEnumerable<Input> allInputs = nfa.GetAllInputs(false);
 			IEnumerator<int> itorID = new SequenceNumberEnumerator(0);
@@ -184,7 +186,7 @@ namespace Yagiey.Lib.RegularExpressions
 			int startNode = nodeMap[nodeSet];
 			var acceptingNodeSet = nodeMap.Where(_ => _.Key.Intersect(nfa.AcceptingNodeSet).Any()).Select(_ => _.Value).Distinct();
 
-			return new DeterministicFiniteAutomaton(startNode, acceptingNodeSet, dfaTransitionMap);
+			return new DFA(startNode, acceptingNodeSet, dfaTransitionMap);
 		}
 
 		private static Tuple<DFATransitionMap, IDictionary<IEnumerable<int>, int>> SubsetConstruction(IEnumerable<int> start, IEnumerable<Input> allInputs, NFATransitionMap transitionMap, IEnumerator<int> itorID)
@@ -217,7 +219,7 @@ namespace Yagiey.Lib.RegularExpressions
 					SubsetConstruction(destinations, allInputs, transitionMap, itorID, newMap, done);
 
 					int next = done[destinations];
-					DeterministicFiniteAutomaton.AddTransition(newMap, id, input, next);
+					DFA.AddTransition(newMap, id, input, next);
 				}
 			}
 		}

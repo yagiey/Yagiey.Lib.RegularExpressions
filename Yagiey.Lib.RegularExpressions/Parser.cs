@@ -5,6 +5,7 @@ using Yagiey.Lib.RegularExpressions.Expressions;
 
 namespace Yagiey.Lib.RegularExpressions
 {
+	using NFA = NondeterministicFiniteAutomaton;
 	using NFATransitionMap = IDictionary<int, IDictionary<Input, IEnumerable<int>>>;
 	using ParserReturnValue = Tuple<int, int, IExpression>;
 
@@ -31,7 +32,7 @@ namespace Yagiey.Lib.RegularExpressions
 	/// </definition>
 	internal class Parser
 	{
-		public NondeterministicFiniteAutomaton EpsilonNFA
+		public NFA EpsilonNFA
 		{
 			get;
 			private set;
@@ -54,7 +55,7 @@ namespace Yagiey.Lib.RegularExpressions
 			IEnumerable<int> acceptingNodeSet = new int[] { ret.Item1.Item2 };
 			NFATransitionMap transitionMap = ret.Item2;
 
-			EpsilonNFA = new NondeterministicFiniteAutomaton(startNode, acceptingNodeSet, transitionMap);
+			EpsilonNFA = new NFA(startNode, acceptingNodeSet, transitionMap);
 			Expression = ret.Item1.Item3;
 		}
 
@@ -119,7 +120,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 				foreach (var item in t)
 				{
-					NondeterministicFiniteAutomaton.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
+					NFA.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
 				}
 				expr = new Selection(list, s, e);
 				start1st = s;
@@ -168,7 +169,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 				foreach (var item in t)
 				{
-					NondeterministicFiniteAutomaton.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
+					NFA.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
 				}
 				expr = new Concatenation(list, s, e);
 				start1st = s;
@@ -213,10 +214,10 @@ namespace Yagiey.Lib.RegularExpressions
 					var t3 = Tuple.Create(inEnd, Input.Empty, new int[] { node2 });
 					var t4 = Tuple.Create(node2, Input.Empty, new int[] { node1, end });
 
-					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t1.Item1, t1.Item2, t1.Item3);
-					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t2.Item1, t2.Item2, t2.Item3);
-					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t3.Item1, t3.Item2, t3.Item3);
-					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t4.Item1, t4.Item2, t4.Item3);
+					NFA.AddTransition(transitionMap, t1.Item1, t1.Item2, t1.Item3);
+					NFA.AddTransition(transitionMap, t2.Item1, t2.Item2, t2.Item3);
+					NFA.AddTransition(transitionMap, t3.Item1, t3.Item2, t3.Item3);
+					NFA.AddTransition(transitionMap, t4.Item1, t4.Item2, t4.Item3);
 				}
 				else
 				{
@@ -231,9 +232,9 @@ namespace Yagiey.Lib.RegularExpressions
 					var t2 = Tuple.Create(inEnd, Input.Empty, new int[] { end });
 					var t3 = Tuple.Create(start, Input.Empty, new int[] { end });
 
-					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t1.Item1, t1.Item2, t1.Item3);
-					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t2.Item1, t2.Item2, t2.Item3);
-					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t3.Item1, t3.Item2, t3.Item3);
+					NFA.AddTransition(transitionMap, t1.Item1, t1.Item2, t1.Item3);
+					NFA.AddTransition(transitionMap, t2.Item1, t2.Item2, t2.Item3);
+					NFA.AddTransition(transitionMap, t3.Item1, t3.Item2, t3.Item3);
 				}
 
 				return new ParserReturnValue(start, end, expr);
@@ -273,7 +274,7 @@ namespace Yagiey.Lib.RegularExpressions
 				IExpression expr = new Expressions.Character(input, start, end);
 
 				int[] ends = new int[] { end };
-				NondeterministicFiniteAutomaton.AddTransition(transitionMap, start, input, ends);
+				NFA.AddTransition(transitionMap, start, input, ends);
 
 				return new ParserReturnValue(start, end, expr);
 			}
