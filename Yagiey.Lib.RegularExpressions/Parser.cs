@@ -32,6 +32,8 @@ namespace Yagiey.Lib.RegularExpressions
 	/// </definition>
 	internal class Parser
 	{
+		const char NewLine = '\n';
+
 		public NFA EpsilonNFA
 		{
 			get;
@@ -268,7 +270,7 @@ namespace Yagiey.Lib.RegularExpressions
 				}
 				else
 				{
-					input = new Input(InputType.Any);
+					input = new Input(InputType.Negative, NewLine);
 				}
 
 				IExpression expr = new Expressions.Character(input, start, end);

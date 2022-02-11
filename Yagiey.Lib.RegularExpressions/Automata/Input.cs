@@ -26,14 +26,6 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			}
 		}
 
-		public bool IsAny
-		{
-			get
-			{
-				return InputType == InputType.Any;
-			}
-		}
-
 		public bool IsPositive
 		{
 			get
@@ -42,11 +34,15 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			}
 		}
 
-		public Input() : this(InputType.Empty, default)
+		public bool IsNegative
 		{
+			get
+			{
+				return InputType == InputType.Negative;
+			}
 		}
 
-		public Input(InputType inputType) : this(inputType, default)
+		public Input() : this(InputType.Empty, default)
 		{
 		}
 
@@ -66,12 +62,13 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			{
 				return ch == Character;
 			}
-			else if(IsAny)
+			else if (IsNegative)
 			{
-				return ch != '\n';
+				return ch != Character;
 			}
 			else
 			{
+				// IsEmpty
 				return true;
 			}
 		}
@@ -106,11 +103,11 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			{
 				return true;
 			}
-			else if (lhs.InputType == InputType.Any)
+			else if (lhs.InputType == InputType.Positive && lhs.Character == rhs.Character)
 			{
 				return true;
 			}
-			else if (lhs.InputType == InputType.Positive && lhs.Character == rhs.Character)
+			else if (lhs.InputType == InputType.Negative && lhs.Character == rhs.Character)
 			{
 				return true;
 			}
@@ -136,13 +133,13 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			{
 				return "<E>";
 			}
-			else if (InputType == InputType.Any)
+			else if (InputType == InputType.Negative)
 			{
-				return "'.'";
+				return "^" + Character;
 			}
 			else
 			{
-				return "'" + Character + "'";
+				return Character.ToString();
 			}
 		}
 
@@ -153,10 +150,6 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 				return InputType.CompareTo(other.InputType);
 			}
 			else if (InputType == InputType.Empty)
-			{
-				return 0;
-			}
-			else if (InputType == InputType.Any)
 			{
 				return 0;
 			}
