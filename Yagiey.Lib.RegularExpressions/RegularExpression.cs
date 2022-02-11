@@ -5,8 +5,8 @@ using Yagiey.Lib.RegularExpressions.Automata;
 
 namespace Yagiey.Lib.RegularExpressions
 {
-	using DFATransitionMap = IDictionary<TransitionParameters, int>;
-	using NFATransitionMap = IDictionary<TransitionParameters, IEnumerable<int>>;
+	using DFATransitionMap = IDictionary<int, IDictionary<Input, int>>;
+	using NFATransitionMap = IDictionary<int, IDictionary<Input, IEnumerable<int>>>;
 
 	public class RegularExpression : IDeterministicFiniteAutomaton<char>
 	{
@@ -51,7 +51,7 @@ namespace Yagiey.Lib.RegularExpressions
 				newAcceptingNodeSet = acceptingNodeSet;
 			}
 
-			NFATransitionMap newTransitionMap = new Dictionary<TransitionParameters, IEnumerable<int>>();
+			NFATransitionMap newTransitionMap = new Dictionary<int, IDictionary<Input, IEnumerable<int>>>();
 			foreach (var node in allNodes)
 			{
 				foreach (var input in allInputs)
@@ -61,8 +61,7 @@ namespace Yagiey.Lib.RegularExpressions
 					{
 						continue;
 					}
-					TransitionParameters p = new(node, input);
-					newTransitionMap.Add(p, destination);
+					NondeterministicFiniteAutomaton.AddTransition(newTransitionMap, node, input, destination);
 				}
 			}
 
@@ -86,11 +85,19 @@ namespace Yagiey.Lib.RegularExpressions
 				return eClosure[node];
 			}
 
-			TransitionParameters p = new(node, Input.Empty);
-			transitions.TryGetValue(p, out IEnumerable<int>? e);
-			if (e == null)
+			IEnumerable<int>? e;
+			transitions.TryGetValue(node, out IDictionary<Input, IEnumerable<int>>? dic);
+			if (dic == null)
 			{
 				return new int[] { node };
+			}
+			else
+			{
+				dic.TryGetValue(Input.Empty, out e);
+				if (e == null)
+				{
+					return new int[] { node };
+				}
 			}
 
 			var destinations = e.Append(node);
@@ -124,13 +131,20 @@ namespace Yagiey.Lib.RegularExpressions
 			IEnumerable<int> ret = Enumerable.Empty<int>();
 			foreach (int node in nodeSet)
 			{
-				TransitionParameters p = new(node, input);
-				transitionMap.TryGetValue(p, out IEnumerable<int>? e);
-				if (e == null || !e.Any())
+				IEnumerable<int>? e;
+				transitionMap.TryGetValue(node, out IDictionary<Input, IEnumerable<int>>? dic);
+				if (dic == null)
 				{
 					continue;
 				}
-
+				else
+				{
+					dic.TryGetValue(input, out e);
+					if (e == null || !e.Any())
+					{
+						continue;
+					}
+				}
 				ret = ret.Concat(e);
 			}
 			return ret;
@@ -175,7 +189,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 		private static Tuple<DFATransitionMap, IDictionary<IEnumerable<int>, int>> SubsetConstruction(IEnumerable<int> start, IEnumerable<Input> allInputs, NFATransitionMap transitionMap, IEnumerator<int> itorID)
 		{
-			DFATransitionMap newMap = new Dictionary<TransitionParameters, int>();
+			DFATransitionMap newMap = new Dictionary<int, IDictionary< Input, int>> ();
 			IDictionary<IEnumerable<int>, int> done = new Dictionary<IEnumerable<int>, int>(new IntSetEqualityComparer());
 
 			SubsetConstruction(start, allInputs, transitionMap, itorID, newMap, done);
@@ -203,8 +217,7 @@ namespace Yagiey.Lib.RegularExpressions
 					SubsetConstruction(destinations, allInputs, transitionMap, itorID, newMap, done);
 
 					int next = done[destinations];
-					TransitionParameters p = new(id, input);
-					newMap.Add(p, next);
+					DeterministicFiniteAutomaton.AddTransition(newMap, id, input, next);
 				}
 			}
 		}

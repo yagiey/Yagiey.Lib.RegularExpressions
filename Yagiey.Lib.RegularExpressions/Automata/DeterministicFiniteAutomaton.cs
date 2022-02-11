@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
-	using DFATransitionMap = IDictionary<TransitionParameters, int>;
+	using DFATransitionMap = IDictionary<int, IDictionary<Input, int>>;
 
 	internal class DeterministicFiniteAutomaton : IDeterministicFiniteAutomaton<char>
 	{
@@ -35,6 +35,24 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			private set;
 		}
 
+		public static DFATransitionMap AddTransition(DFATransitionMap transitionMap, int node, Input input, int dest)
+		{
+			if (transitionMap.ContainsKey(node))
+			{
+				var dic = transitionMap[node];
+				dic.Add(input, dest);
+			}
+			else
+			{
+				IDictionary<Input, int> dic = new Dictionary<Input, int>
+				{
+					{ input, dest }
+				};
+				transitionMap.Add(node, dic);
+			}
+			return transitionMap;
+		}
+
 		#region IDeterministicFiniteAutomaton
 
 		public void Reset()
@@ -50,15 +68,22 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 				return;
 			}
 
-			TransitionParameters p = new(_state, new Input(input));
-			bool result = TransitionMap.TryGetValue(p, out int dest);
-			if (!result)
+			bool result = TransitionMap.TryGetValue(_state, out IDictionary<Input, int>? dic);
+			if (!result || dic == null)
 			{
 				_isError = true;
 			}
 			else
 			{
-				_state = dest;
+				result = dic.TryGetValue(new Input(input), out int dest);
+				if (!result)
+				{
+					_isError = true;
+				}
+				else
+				{
+					_state = dest;
+				}
 			}
 		}
 
@@ -93,13 +118,19 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 				return true;
 			}
 
-			TransitionParameters p = new(_state, new Input(input));
-			bool result = TransitionMap.TryGetValue(p, out _);
-			if (!result)
+			bool result = TransitionMap.TryGetValue(_state, out IDictionary<Input, int>? dic);
+			if (!result || dic == null)
 			{
 				return true;
 			}
-
+			else
+			{
+				result = dic.TryGetValue(new Input(input), out _);
+				if (!result)
+				{
+					return true;
+				}
+			}
 			return false;
 		}
 

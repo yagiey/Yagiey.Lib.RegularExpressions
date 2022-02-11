@@ -6,7 +6,7 @@ using Yagiey.Lib.RegularExpressions.Expressions;
 
 namespace Yagiey.Lib.RegularExpressions
 {
-	using NFATransitionMap = IDictionary<TransitionParameters, IEnumerable<int>>;
+	using NFATransitionMap = IDictionary<int, IDictionary<Input, IEnumerable<int>>>;
 	using ParserReturnValue = Tuple<int, int, IExpression>;
 
 	/// <summary>
@@ -62,7 +62,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 		private static Tuple<ParserReturnValue, NFATransitionMap> GetExpression(IEnumerator<Tuple<Token, Token?[]>> itorToken)
 		{
-			NFATransitionMap transitionMap = new Dictionary<TransitionParameters, IEnumerable<int>>();
+			NFATransitionMap transitionMap = new Dictionary<int, IDictionary<Input, IEnumerable<int>>>();
 			var itorID = new SequenceNumberEnumerator(0);
 			ParserReturnValue result = GetExpression(transitionMap, itorToken, itorID);
 			return Tuple.Create(result, transitionMap);
@@ -119,7 +119,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 				foreach (var item in t)
 				{
-					AddTransition(transitionMap, new TransitionParameters(item.Item1, item.Item2), item.Item3);
+					NondeterministicFiniteAutomaton.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
 				}
 				expr = new Selection(list, s, e);
 				start1st = s;
@@ -168,7 +168,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 				foreach (var item in t)
 				{
-					AddTransition(transitionMap, new TransitionParameters(item.Item1, item.Item2), item.Item3);
+					NondeterministicFiniteAutomaton.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
 				}
 				expr = new Concatenation(list, s, e);
 				start1st = s;
@@ -213,14 +213,10 @@ namespace Yagiey.Lib.RegularExpressions
 					var t3 = Tuple.Create(inEnd, Input.Empty, new int[] { node2 });
 					var t4 = Tuple.Create(node2, Input.Empty, new int[] { node1, end });
 
-					var p1 = new TransitionParameters(t1.Item1, t1.Item2);
-					AddTransition(transitionMap, p1, t1.Item3);
-					var p2 = new TransitionParameters(t2.Item1, t2.Item2);
-					AddTransition(transitionMap, p2, t2.Item3);
-					var p3 = new TransitionParameters(t3.Item1, t3.Item2);
-					AddTransition(transitionMap, p3, t3.Item3);
-					var p4 = new TransitionParameters(t4.Item1, t4.Item2);
-					AddTransition(transitionMap, p4, t4.Item3);
+					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t1.Item1, t1.Item2, t1.Item3);
+					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t2.Item1, t2.Item2, t2.Item3);
+					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t3.Item1, t3.Item2, t3.Item3);
+					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t4.Item1, t4.Item2, t4.Item3);
 				}
 				else
 				{
@@ -235,12 +231,9 @@ namespace Yagiey.Lib.RegularExpressions
 					var t2 = Tuple.Create(inEnd, Input.Empty, new int[] { end });
 					var t3 = Tuple.Create(start, Input.Empty, new int[] { end });
 
-					var p1 = new TransitionParameters(t1.Item1, t1.Item2);
-					AddTransition(transitionMap, p1, t1.Item3);
-					var p2 = new TransitionParameters(t2.Item1, t2.Item2);
-					AddTransition(transitionMap, p2, t2.Item3);
-					var p3 = new TransitionParameters(t3.Item1, t3.Item2);
-					AddTransition(transitionMap, p3, t3.Item3);
+					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t1.Item1, t1.Item2, t1.Item3);
+					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t2.Item1, t2.Item2, t2.Item3);
+					NondeterministicFiniteAutomaton.AddTransition(transitionMap, t3.Item1, t3.Item2, t3.Item3);
 				}
 
 				return new ParserReturnValue(start, end, expr);
@@ -270,9 +263,8 @@ namespace Yagiey.Lib.RegularExpressions
 
 				IExpression expr = new Expressions.Character(ch, start, end);
 
-				TransitionParameters p = new(start, new Input(ch));
 				int[] ends = new int[] { end };
-				AddTransition(transitionMap, p, ends);
+				NondeterministicFiniteAutomaton.AddTransition(transitionMap, start, new Input(ch), ends);
 
 				return new ParserReturnValue(start, end, expr);
 			}
@@ -298,21 +290,6 @@ namespace Yagiey.Lib.RegularExpressions
 				return ret;
 			}
 		}
-
-		private static NFATransitionMap AddTransition(NFATransitionMap transitionMap, TransitionParameters p, IEnumerable<int> dest)
-		{
-			if (transitionMap.ContainsKey(p))
-			{
-				var value = transitionMap[p];
-				transitionMap[p] = value.Concat(dest);
-			}
-			else
-			{
-				transitionMap.Add(p, dest);
-			}
-			return transitionMap;
-		}
-
 		#endregion
 	}
 }
