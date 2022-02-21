@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace Yagiey.Lib.RegularExpressions.Automata
+namespace Yagiey.Lib.RegularExpressions
 {
 
 	internal class IntSetEqualityComparer : IEqualityComparer<IEnumerable<int>>

@@ -36,6 +36,23 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			private set;
 		}
 
+		public IEnumerable<int> GetAllNodes()
+		{
+			IEnumerable<int> result = Enumerable.Empty<int>();
+			foreach (var pair1 in TransitionMap)
+			{
+				int node = pair1.Key;
+				result = result.Append(node);
+				IDictionary<Input, int> dic = pair1.Value;
+				foreach (var pair2 in dic)
+				{
+					int destination = pair2.Value;
+					result = result.Append(destination);
+				}
+			}
+			return result.Distinct().OrderBy(_ => _);
+		}
+
 		public static DFATransitionMap AddTransition(DFATransitionMap transitionMap, int node, Input input, int dest)
 		{
 			if (transitionMap.ContainsKey(node))
@@ -52,6 +69,19 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 				transitionMap.Add(node, dic);
 			}
 			return transitionMap;
+		}
+
+		public override string ToString()
+		{
+			List<string> lines = new();
+			lines.Add(string.Format("start: {0}", StartNode));
+			lines.Add(string.Format("accepting: [{0}]", string.Join(",", AcceptingNodeSet)));
+			foreach (var pair in TransitionMap.OrderBy(_ => _.Key))
+			{
+				var strMap = string.Join(",", pair.Value.OrderBy(_ => _.Key).Select(pair2 => string.Format("ch({0})->{1}", (int)pair2.Key.Character, pair2.Value)));
+				lines.Add(string.Format("{0}:{1}", pair.Key, strMap));
+			}
+			return string.Join("\r\n", lines);
 		}
 
 		#region IDeterministicFiniteAutomaton
