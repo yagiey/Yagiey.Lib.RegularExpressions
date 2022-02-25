@@ -18,27 +18,5 @@ namespace Yagiey.Lib.RegularExpressions
 		public const char RBracket = ']';
 		public const char LBrace = '{';
 		public const char RBrace = '}';
-
-		public static IEnumerable<char> Operators
-		{
-			get
-			{
-				return Enumerable.Empty<char>()
-					.Append(VerticalBar)
-					.Append(Asterisk)
-					.Append(Question)
-					.Append(Hat)
-
-					.Append(LParen)
-					.Append(RParen)
-
-					.Append(LBracket)
-					.Append(RBracket)
-
-					.Append(LBrace)
-					.Append(RBrace)
-					;
-			}
-		}
 	}
 }
