@@ -10,7 +10,6 @@ namespace Yagiey.Lib.RegularExpressions
 {
 	internal class LexicalAnalyzer : IEnumerable<Tuple<Token, Token?[]>>
 	{
-		private readonly IDeterministicFiniteAutomaton<char> _special;
 		private readonly IDeterministicFiniteAutomaton<char> _escape;
 		private readonly IDeterministicFiniteAutomaton<char> _chara;
 		private IEnumerable<IDeterministicFiniteAutomaton<char>> _automata;
@@ -23,7 +22,6 @@ namespace Yagiey.Lib.RegularExpressions
 
 		public LexicalAnalyzer(string source)
 		{
-			_special = new SpecialCharacter();
 			_escape = new Escape();
 			_chara = new Character();
 			_automata = Enumerable.Empty<IDeterministicFiniteAutomaton<char>>();
@@ -38,7 +36,6 @@ namespace Yagiey.Lib.RegularExpressions
 		{
 			_automata =
 				Enumerable.Empty<IDeterministicFiniteAutomaton<char>>()
-				.Append(_special)
 				.Append(_escape)
 				.Append(_chara);
 			_automata.ForEach(a => a.Reset());
@@ -70,38 +67,10 @@ namespace Yagiey.Lib.RegularExpressions
 		private Token GetToken(IDeterministicFiniteAutomaton<char> a, string strToken)
 		{
 			TokenType type;
-			if (a == _special)
-			{
-				char ch = strToken[0];
-				if (ch == Constants.LParen)
-				{
-					type = TokenType.LParen;
-				}
-				else if (ch == Constants.RParen)
-				{
-					type = TokenType.RParen;
-				}
-				else if (ch == Constants.VerticalBar)
-				{
-					type = TokenType.Selection;
-				}
-				else if (ch == Constants.Question)
-				{
-					type = TokenType.Option;
-				}
-				else if (ch == Constants.Dot)
-				{
-					type = TokenType.AnyButReturn;
-				}
-				else
-				{
-					type = TokenType.Repeat0;
-				}
-			}
-			else if (a == _escape)
+			if (a == _escape)
 			{
 				strToken = strToken.TrimStart('\\');
-				type = TokenType.Character;
+				type = TokenType.Escape;
 			}
 			else
 			{
@@ -142,7 +111,8 @@ namespace Yagiey.Lib.RegularExpressions
 					{
 						if (c1ac > 0)
 						{
-							var token1 = GetToken(sb.ToString());
+							string strToken = sb.ToString();
+							var token1 = GetToken(strToken);
 							yield return token1!;
 
 							SetupAutomata();
@@ -156,7 +126,8 @@ namespace Yagiey.Lib.RegularExpressions
 				}
 			}
 
-			var token2 = GetToken(sb.ToString());
+			string strToken2 = sb.ToString();
+			var token2 = GetToken(strToken2);
 			if (token2 == null)
 			{
 				string errorMsg = string.Format("invalid token '{0}' detected", sb.ToString());

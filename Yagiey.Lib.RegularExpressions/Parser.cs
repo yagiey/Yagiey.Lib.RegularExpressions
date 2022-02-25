@@ -79,7 +79,7 @@ namespace Yagiey.Lib.RegularExpressions
 			IExpression expr = lv2.Item3;
 
 			Token? next = itorToken.Current.Item2[0];
-			if (next != null && next.TokenType == TokenType.Selection)
+			if (next != null && next.CanBeRegardedAsRestOfSelection())
 			{
 				List<IExpression> list = new();
 				List<Tuple<int, Input, int[]>> t = new();
@@ -109,7 +109,7 @@ namespace Yagiey.Lib.RegularExpressions
 					t.Add(Tuple.Create(end2nd, Input.Empty, new int[] { e }));
 
 					next = itorToken.Current.Item2[0];
-					if (next == null || next.TokenType != TokenType.Selection)
+					if (next == null || !next.CanBeRegardedAsRestOfSelection())
 					{
 						break;
 					}
@@ -140,7 +140,7 @@ namespace Yagiey.Lib.RegularExpressions
 			IExpression expr = lv1.Item3;
 
 			Token? next = itorToken.Current.Item2[0];
-			if (next != null && (next.TokenType == TokenType.Character || next.TokenType == TokenType.LParen))
+			if (next != null && next.CanBeRegardedAsRestOfConcatenation())
 			{
 				List<IExpression> list = new();
 				List<Tuple<int, Input, int[]>> t = new();
@@ -165,7 +165,11 @@ namespace Yagiey.Lib.RegularExpressions
 					prevEnd = end2nd;
 
 					next = itorToken.Current.Item2[0];
-				} while (next != null && (next.TokenType == TokenType.Character || next.TokenType == TokenType.LParen));
+					if (next == null || !next.CanBeRegardedAsRestOfConcatenation())
+					{
+						break;
+					}
+				} while (true);
 
 				t.Add(Tuple.Create(prevEnd, Input.Empty, new int[] { e }));
 
@@ -189,7 +193,7 @@ namespace Yagiey.Lib.RegularExpressions
 			IExpression expr = lv0.Item3;
 
 			Token? next = itorToken.Current.Item2[0];
-			if (next != null && (next.TokenType == TokenType.Repeat0 || next.TokenType == TokenType.Option))
+			if (next != null && next.TokenType == TokenType.Character && (next.Source[0] == Constants.Asterisk || next.Source[0] == Constants.Question))
 			{
 				if (!itorToken.MoveNext())
 				{
@@ -198,7 +202,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 				int start;
 				int end;
-				if (next.TokenType == TokenType.Repeat0)
+				if (next.Source[0] == Constants.Asterisk)
 				{
 					itorID.MoveNext();
 					start = itorID.Current;
@@ -255,42 +259,12 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 
 			Token curr = itorToken.Current.Item1;
-			if (curr.TokenType == TokenType.Character || curr.TokenType == TokenType.AnyButReturn)
+			if (curr.IsBeginingOfExpressionWithParen())
 			{
-				itorID.MoveNext();
-				int start = itorID.Current;
-				itorID.MoveNext();
-				int end = itorID.Current;
-
-				Input input;
-				if (curr.TokenType == TokenType.Character)
-				{
-					char ch = curr.Source[0];
-					input = new Input(ch);
-				}
-				else
-				{
-					input = new Input(InputType.Negative, NewLine);
-				}
-
-				IExpression expr = new Expressions.Character(input, start, end);
-
-				int[] ends = new int[] { end };
-				NFA.AddTransition(transitionMap, start, input, ends);
-
-				return new ParserReturnValue(start, end, expr);
-			}
-			else
-			{
-				if (curr.TokenType != TokenType.LParen)
-				{
-					throw new Exception();
-				}
-
 				var ret = GetExpression(transitionMap, itorToken, itorID);
 
 				Token? next = itorToken.Current.Item2[0];
-				if (next == null || next.TokenType != TokenType.RParen)
+				if (next == null || !next.IsEndOfExpressionWithParen())
 				{
 					throw new Exception();
 				}
@@ -300,6 +274,31 @@ namespace Yagiey.Lib.RegularExpressions
 				}
 
 				return ret;
+			}
+			else
+			{
+				itorID.MoveNext();
+				int start = itorID.Current;
+				itorID.MoveNext();
+				int end = itorID.Current;
+
+				Input input;
+				if (curr.TokenType == TokenType.Character && curr.Source[0] == Constants.Dot)
+				{
+					input = new Input(InputType.Negative, NewLine);
+				}
+				else
+				{
+					char ch = curr.Source[0];
+					input = new Input(ch);
+				}
+
+				IExpression expr = new Expressions.Character(input, start, end);
+
+				int[] ends = new int[] { end };
+				NFA.AddTransition(transitionMap, start, input, ends);
+
+				return new ParserReturnValue(start, end, expr);
 			}
 		}
 		#endregion

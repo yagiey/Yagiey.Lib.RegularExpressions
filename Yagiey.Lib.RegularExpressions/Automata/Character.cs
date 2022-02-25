@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
@@ -71,7 +70,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			switch (_state)
 			{
 				case States.Initial:
-					if (!Constants.SpecialCharacters.Contains(ch) && ch != Constants.Backslash)
+					if (ch != Constants.Backslash)
 					{
 						next = States.State0;
 					}

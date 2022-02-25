@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
@@ -83,14 +82,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 					break;
 
 				case States.State0:
-					if (Constants.SpecialCharacters.Contains(ch))
-					{
-						next = States.State1;
-					}
-					else
-					{
-						next = States.Error;
-					}
+					next = States.State1;
 					break;
 
 				case States.State1:
