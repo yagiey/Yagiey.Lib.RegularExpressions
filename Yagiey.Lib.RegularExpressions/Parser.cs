@@ -67,8 +67,6 @@ namespace Yagiey.Lib.RegularExpressions
 		private static StartAndEnd GetExpression(NFATransitionMap transitionMap, IEnumerator<Tuple<Token, Token?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			var lv2 = GetLevel2(transitionMap, itorToken, itorID);
-			int start1st = lv2.Item1;
-			int end1st = lv2.Item2;
 
 			Token? next = itorToken.Current.Item2[0];
 			if (next != null && next.CanBeRegardedAsRestOfSelection())
@@ -76,12 +74,12 @@ namespace Yagiey.Lib.RegularExpressions
 				List<Tuple<int, Input, int[]>> t = new();
 
 				itorID.MoveNext();
-				int s = itorID.Current;
+				int start = itorID.Current;
 				itorID.MoveNext();
-				int e = itorID.Current;
+				int end = itorID.Current;
 
-				t.Add(Tuple.Create(s, Input.Empty, new int[] { start1st }));
-				t.Add(Tuple.Create(end1st, Input.Empty, new int[] { e }));
+				t.Add(Tuple.Create(start, Input.Empty, new int[] { lv2.Item1 }));
+				t.Add(Tuple.Create(lv2.Item2, Input.Empty, new int[] { end }));
 
 				if (!itorToken.MoveNext())
 				{
@@ -91,10 +89,8 @@ namespace Yagiey.Lib.RegularExpressions
 				do
 				{
 					var lv2New = GetLevel2(transitionMap, itorToken, itorID);
-					int start2nd = lv2New.Item1;
-					int end2nd = lv2New.Item2;
-					t.Add(Tuple.Create(s, Input.Empty, new int[] { start2nd }));
-					t.Add(Tuple.Create(end2nd, Input.Empty, new int[] { e }));
+					t.Add(Tuple.Create(start, Input.Empty, new int[] { lv2New.Item1 }));
+					t.Add(Tuple.Create(lv2New.Item2, Input.Empty, new int[] { end }));
 
 					next = itorToken.Current.Item2[0];
 					if (next == null || !next.CanBeRegardedAsRestOfSelection())
@@ -112,18 +108,17 @@ namespace Yagiey.Lib.RegularExpressions
 				{
 					NFA.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
 				}
-				start1st = s;
-				end1st = e;
+				return new StartAndEnd(start, end);
 			}
-
-			return new StartAndEnd(start1st, end1st);
+			else
+			{
+				return lv2;
+			}
 		}
 
 		private static StartAndEnd GetLevel2(NFATransitionMap transitionMap, IEnumerator<Tuple<Token, Token?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			var lv1 = GetLevel1(transitionMap, itorToken, itorID);
-			int start1st = lv1.Item1;
-			int end1st = lv1.Item2;
 
 			Token? next = itorToken.Current.Item2[0];
 			if (next != null && next.CanBeRegardedAsRestOfConcatenation())
@@ -131,20 +126,17 @@ namespace Yagiey.Lib.RegularExpressions
 				List<Tuple<int, Input, int[]>> t = new();
 
 				itorID.MoveNext();
-				int s = itorID.Current;
+				int start = itorID.Current;
 				itorID.MoveNext();
-				int e = itorID.Current;
-				t.Add(Tuple.Create(s, Input.Empty, new int[] { start1st }));
+				int end = itorID.Current;
+				t.Add(Tuple.Create(start, Input.Empty, new int[] { lv1.Item1 }));
 
-				int prevEnd = end1st;
+				int prevEnd = lv1.Item2;
 				do
 				{
 					var lv1New = GetLevel1(transitionMap, itorToken, itorID);
-					int start2nd = lv1New.Item1;
-					int end2nd = lv1New.Item2;
-
-					t.Add(Tuple.Create(prevEnd, Input.Empty, new int[] { start2nd }));
-					prevEnd = end2nd;
+					t.Add(Tuple.Create(prevEnd, Input.Empty, new int[] { lv1New.Item1 }));
+					prevEnd = lv1New.Item2;
 
 					next = itorToken.Current.Item2[0];
 					if (next == null || !next.CanBeRegardedAsRestOfConcatenation())
@@ -153,24 +145,23 @@ namespace Yagiey.Lib.RegularExpressions
 					}
 				} while (true);
 
-				t.Add(Tuple.Create(prevEnd, Input.Empty, new int[] { e }));
+				t.Add(Tuple.Create(prevEnd, Input.Empty, new int[] { end }));
 
 				foreach (var item in t)
 				{
 					NFA.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
 				}
-				start1st = s;
-				end1st = e;
+				return new StartAndEnd(start, end);
 			}
-
-			return new StartAndEnd(start1st, end1st);
+			else
+			{
+				return lv1;
+			}
 		}
 
 		private static StartAndEnd GetLevel1(NFATransitionMap transitionMap, IEnumerator<Tuple<Token, Token?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			var lv0 = GetLevel0(transitionMap, itorToken, itorID);
-			int inStart = lv0.Item1;
-			int inEnd = lv0.Item2;
 
 			Token? next = itorToken.Current.Item2[0];
 			if (next != null && next.TokenType == TokenType.Character && (next.Source[0] == Constants.Asterisk || next.Source[0] == Constants.Question))
@@ -194,8 +185,8 @@ namespace Yagiey.Lib.RegularExpressions
 					end = itorID.Current;
 
 					var t1 = Tuple.Create(start, Input.Empty, new int[] { node1, end });
-					var t2 = Tuple.Create(node1, Input.Empty, new int[] { inStart });
-					var t3 = Tuple.Create(inEnd, Input.Empty, new int[] { node2 });
+					var t2 = Tuple.Create(node1, Input.Empty, new int[] { lv0.Item1 });
+					var t3 = Tuple.Create(lv0.Item2, Input.Empty, new int[] { node2 });
 					var t4 = Tuple.Create(node2, Input.Empty, new int[] { node1, end });
 
 					NFA.AddTransition(transitionMap, t1.Item1, t1.Item2, t1.Item3);
@@ -210,8 +201,8 @@ namespace Yagiey.Lib.RegularExpressions
 					itorID.MoveNext();
 					end = itorID.Current;
 
-					var t1 = Tuple.Create(start, Input.Empty, new int[] { inStart });
-					var t2 = Tuple.Create(inEnd, Input.Empty, new int[] { end });
+					var t1 = Tuple.Create(start, Input.Empty, new int[] { lv0.Item1 });
+					var t2 = Tuple.Create(lv0.Item2, Input.Empty, new int[] { end });
 					var t3 = Tuple.Create(start, Input.Empty, new int[] { end });
 
 					NFA.AddTransition(transitionMap, t1.Item1, t1.Item2, t1.Item3);
@@ -223,7 +214,7 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 			else
 			{
-				return new StartAndEnd(inStart, inEnd);
+				return lv0;
 			}
 		}
 
