@@ -23,21 +23,23 @@
 		public override string ToString()
 		{
 			string src = TokenType == TokenType.Escape ? Constants.Backslash + Source : Source;
-			return string.Format("[{0}]{1}", src, TokenType);
+			//return string.Format("[{0}]{1}", src, TokenType);
+			return src;
 		}
 
 		public bool CanBeRegardedAsRestOfConcatenation()
 		{
 			char ch = Source[0];
 			return
-				TokenType == TokenType.Character
+				(TokenType == TokenType.Character
 				&& ch != Constants.VerticalBar
 				&& ch != Constants.Asterisk
 				&& ch != Constants.Question
 				&& ch != Constants.Hat
 				&& ch != Constants.RParen
 				&& ch != Constants.RBracket
-				&& ch != Constants.RBrace
+				&& ch != Constants.RBrace)
+				|| TokenType == TokenType.Escape
 				;
 		}
 

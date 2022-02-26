@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Yagiey.Lib.RegularExpressions.Automata;
 
 namespace Yagiey.Lib.RegularExpressions
@@ -252,28 +253,45 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 			else
 			{
+				char ch = curr.Source[0];
 				itorID.MoveNext();
 				int start = itorID.Current;
 				itorID.MoveNext();
 				int end = itorID.Current;
 
-				Input input;
-				if (curr.TokenType == TokenType.Character && curr.Source[0] == Constants.Dot)
+				if (curr.TokenType == TokenType.Escape && ch == 'd')
 				{
-					input = new Input(InputType.Negative, NewLine);
+					IEnumerable<char> characters = Enumerable.Range(0, 10).Select(n => Convert.ToChar('0' + n));
+					AddTransitions(transitionMap, start, characters, new int[] { end });
 				}
 				else
 				{
-					char ch = curr.Source[0];
-					input = new Input(ch);
+					Input input;
+					if (curr.TokenType == TokenType.Character && ch == Constants.Dot)
+					{
+						input = new Input(InputType.Negative, NewLine);
+					}
+					else
+					{
+						input = new Input(ch);
+					}
+					NFA.AddTransition(transitionMap, start, input, new int[] { end });
 				}
-
-				int[] ends = new int[] { end };
-				NFA.AddTransition(transitionMap, start, input, ends);
 
 				return new StartAndEnd(start, end);
 			}
 		}
+
+		public static NFATransitionMap AddTransitions(NFATransitionMap transitionMap, int start, IEnumerable<char> characters, IEnumerable<int> ends)
+		{
+			foreach (char ch in characters)
+			{
+				Input input = new Input(ch);
+				NFA.AddTransition(transitionMap, start, input, ends);
+			}
+			return transitionMap;
+		}
+
 		#endregion
 	}
 }

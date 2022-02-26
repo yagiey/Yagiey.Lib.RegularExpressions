@@ -178,10 +178,8 @@ namespace Yagiey.Lib.RegularExpressions
 		private static DFA ToDFA(NFA nfa)
 		{
 			IEnumerable<Input> allInputs = nfa.GetAllInputs(false);
-			IEnumerator<int> itorID = new SequenceNumberEnumerator(0);
-
 			IEnumerable<int> nodeSet = new int[] { nfa.StartNode };
-			var result = SubsetConstruction(nodeSet, allInputs, nfa.TransitionMap, itorID);
+			var result = SubsetConstruction(nodeSet, allInputs, nfa.TransitionMap);
 
 			var dfaTransitionMap = result.Item1;
 			var nodeMap = result.Item2;
@@ -191,8 +189,9 @@ namespace Yagiey.Lib.RegularExpressions
 			return new DFA(startNode, acceptingNodeSet, dfaTransitionMap);
 		}
 
-		private static Tuple<DFATransitionMap, IDictionary<IEnumerable<int>, int>> SubsetConstruction(IEnumerable<int> start, IEnumerable<Input> allInputs, NFATransitionMap transitionMap, IEnumerator<int> itorID)
+		private static Tuple<DFATransitionMap, IDictionary<IEnumerable<int>, int>> SubsetConstruction(IEnumerable<int> start, IEnumerable<Input> allInputs, NFATransitionMap transitionMap)
 		{
+			IEnumerator<int> itorID = new SequenceNumberEnumerator(0);
 			DFATransitionMap newMap = new Dictionary<int, IDictionary<Input, int>>();
 			IDictionary<IEnumerable<int>, int> done = new Dictionary<IEnumerable<int>, int>(new IntSetEqualityComparer());
 
@@ -233,19 +232,17 @@ namespace Yagiey.Lib.RegularExpressions
 		private static DFA MinimizeDFA(DFA dfa)
 		{
 			bool isAcc(int node) => dfa.AcceptingNodeSet.Any(_ => _ == node);
-			IDictionary<int, HashSet<int>> group2NodesOld = new Dictionary<int, HashSet<int>>();
-			IDictionary<int, int> node2GroupOld = new Dictionary<int, int>();
+			IDictionary<int, HashSet<int>> group2Nodes = new Dictionary<int, HashSet<int>>();
 			foreach (int node in dfa.GetAllNodes())
 			{
 				int group = isAcc(node) ? 1 : 0;
-				node2GroupOld.Add(node, group);
-				if (group2NodesOld.ContainsKey(group))
+				if (group2Nodes.ContainsKey(group))
 				{
-					group2NodesOld[group].Add(node);
+					group2Nodes[group].Add(node);
 				}
 				else
 				{
-					group2NodesOld.Add(group, new HashSet<int> { node });
+					group2Nodes.Add(group, new HashSet<int> { node });
 				}
 			}
 
@@ -255,11 +252,11 @@ namespace Yagiey.Lib.RegularExpressions
 			IDictionary<int, int> node2Group;
 			while (true)
 			{
-				var newGroups = MakeGroup(group2NodesOld, dfa.TransitionMap);
+				var newGroups = MakeGroup(group2Nodes, dfa.TransitionMap);
 				IDictionary<int, HashSet<int>> group2NodesNew = newGroups.Item2;
 
-				bool isEq = eqComp.Equals(group2NodesOld.Values, group2NodesNew.Values);
-				group2NodesOld = group2NodesNew;
+				bool isEq = eqComp.Equals(group2Nodes.Values, group2NodesNew.Values);
+				group2Nodes = group2NodesNew;
 				node2Group = newGroups.Item1;
 				if (isEq)
 				{
@@ -271,7 +268,7 @@ namespace Yagiey.Lib.RegularExpressions
 			int startNode = -1;
 			IEnumerable<int> acceptingNodeSet = Enumerable.Empty<int>();
 			DFATransitionMap transitionMap = new Dictionary<int, IDictionary<Input, int>>();
-			foreach (var pair in group2NodesOld)
+			foreach (var pair in group2Nodes)
 			{
 				int groupID = pair.Key;
 				IEnumerable<int> members = pair.Value;
@@ -287,7 +284,13 @@ namespace Yagiey.Lib.RegularExpressions
 				}
 
 				int nodeIDOrg = members.First();
-				IDictionary<Input, int> trans = dfa.TransitionMap[nodeIDOrg];
+
+				dfa.TransitionMap.TryGetValue(nodeIDOrg, out IDictionary<Input, int>? trans);
+				if (trans == null)
+				{
+					continue;
+				}
+
 				IDictionary<Input, int> transNew =
 					new Dictionary<Input, int>(
 						trans.Select(_ => new KeyValuePair<Input, int>(_.Key, node2Group[_.Value]))
@@ -309,8 +312,17 @@ namespace Yagiey.Lib.RegularExpressions
 			{
 				foreach (int nodeID in group2Nodes[groupID])
 				{
-					IDictionary<Input, int> trans = transitionMap[nodeID];
-					string id = string.Join("|", trans.OrderBy(_ => _.Key).Select(_ => string.Format("{0}:{1}", (int)_.Key.Character, _.Value)));
+					transitionMap.TryGetValue(nodeID, out IDictionary<Input, int>? trans);
+
+					string id;
+					if (trans == null)
+					{
+						id = "EMPTY";
+					}
+					else
+					{
+						id = string.Join("|", trans.OrderBy(_ => _.Key).Select(_ => string.Format("{0}:{1}", (int)_.Key.Character, _.Value)));
+					}
 
 					if (map.TryGetValue(id, out int newGroupID))
 					{

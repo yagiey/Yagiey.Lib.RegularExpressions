@@ -78,7 +78,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			lines.Add(string.Format("accepting: [{0}]", string.Join(",", AcceptingNodeSet)));
 			foreach (var pair in TransitionMap.OrderBy(_ => _.Key))
 			{
-				var strMap = string.Join(",", pair.Value.OrderBy(_ => _.Key).Select(pair2 => string.Format("ch({0})->{1}", (int)pair2.Key.Character, pair2.Value)));
+				var strMap = string.Join(",", pair.Value.OrderBy(_ => _.Key).Select(pair2 => string.Format("ch({0})->{1}", pair2.Key.ToString(), pair2.Value)));
 				lines.Add(string.Format("{0}:{1}", pair.Key, strMap));
 			}
 			return string.Join("\r\n", lines);
