@@ -54,7 +54,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 		#region parsing
 
-		private static Tuple<StartAndEnd, NFATransitionMap> GetExpression(IEnumerator<Tuple<Token, Token?[]>> itorToken)
+		private static Tuple<StartAndEnd, NFATransitionMap> GetExpression(IEnumerator<Tuple<char, char?[]>> itorToken)
 		{
 			NFATransitionMap transitionMap = new Dictionary<int, IDictionary<Input, IEnumerable<int>>>();
 			var itorID = new SequenceNumberEnumerator(0);
@@ -62,12 +62,11 @@ namespace Yagiey.Lib.RegularExpressions
 			return Tuple.Create(result, transitionMap);
 		}
 
-		private static StartAndEnd GetExpression(NFATransitionMap transitionMap, IEnumerator<Tuple<Token, Token?[]>> itorToken, IEnumerator<int> itorID)
+		private static StartAndEnd GetExpression(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			var lv2 = GetLevel2(transitionMap, itorToken, itorID);
 
-			Token? next = itorToken.Current.Item2[0];
-			if (next != null && next.CanBeRegardedAsRestOfSelection())
+			if (itorToken.Current.CanNextBeRegardedAsRestOfSelection())
 			{
 				List<Tuple<int, Input, int[]>> t = new();
 
@@ -90,8 +89,7 @@ namespace Yagiey.Lib.RegularExpressions
 					t.Add(Tuple.Create(start, Input.Empty, new int[] { lv2New.Item1 }));
 					t.Add(Tuple.Create(lv2New.Item2, Input.Empty, new int[] { end }));
 
-					next = itorToken.Current.Item2[0];
-					if (next == null || !next.CanBeRegardedAsRestOfSelection())
+					if (!itorToken.Current.CanNextBeRegardedAsRestOfSelection())
 					{
 						break;
 					}
@@ -114,12 +112,11 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 		}
 
-		private static StartAndEnd GetLevel2(NFATransitionMap transitionMap, IEnumerator<Tuple<Token, Token?[]>> itorToken, IEnumerator<int> itorID)
+		private static StartAndEnd GetLevel2(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			var lv1 = GetLevel1(transitionMap, itorToken, itorID);
 
-			Token? next = itorToken.Current.Item2[0];
-			if (next != null && next.CanBeRegardedAsRestOfConcatenation())
+			if (itorToken.Current.CanNextBeRegardedAsRestOfConcatenation())
 			{
 				List<Tuple<int, Input, int[]>> t = new();
 
@@ -136,8 +133,7 @@ namespace Yagiey.Lib.RegularExpressions
 					t.Add(Tuple.Create(prevEnd, Input.Empty, new int[] { lv1New.Item1 }));
 					prevEnd = lv1New.Item2;
 
-					next = itorToken.Current.Item2[0];
-					if (next == null || !next.CanBeRegardedAsRestOfConcatenation())
+					if (!itorToken.Current.CanNextBeRegardedAsRestOfConcatenation())
 					{
 						break;
 					}
@@ -157,12 +153,12 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 		}
 
-		private static StartAndEnd GetLevel1(NFATransitionMap transitionMap, IEnumerator<Tuple<Token, Token?[]>> itorToken, IEnumerator<int> itorID)
+		private static StartAndEnd GetLevel1(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			var lv0 = GetLevel0(transitionMap, itorToken, itorID);
 
-			Token? next = itorToken.Current.Item2[0];
-			if (next != null && next.TokenType == TokenType.Character && (next.Source[0] == Constants.Asterisk || next.Source[0] == Constants.Question))
+			char? next = itorToken.Current.Item2[0];
+			if (next.HasValue && (next == Constants.Asterisk || next == Constants.Question))
 			{
 				if (!itorToken.MoveNext())
 				{
@@ -171,7 +167,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 				int start;
 				int end;
-				if (next.Source[0] == Constants.Asterisk)
+				if (next == Constants.Asterisk)
 				{
 					itorID.MoveNext();
 					start = itorID.Current;
@@ -216,20 +212,18 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 		}
 
-		private static StartAndEnd GetLevel0(NFATransitionMap transitionMap, IEnumerator<Tuple<Token, Token?[]>> itorToken, IEnumerator<int> itorID)
+		private static StartAndEnd GetLevel0(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
-			if (!itorToken.MoveNext() || itorToken.Current == null)
+			if (!itorToken.MoveNext())
 			{
 				throw new Exception();
 			}
 
-			Token curr = itorToken.Current.Item1;
-			if (curr.IsBeginingOfExpressionWithParen())
+			if (itorToken.Current.IsBeginingOfExpressionWithParen())
 			{
 				var ret = GetExpression(transitionMap, itorToken, itorID);
 
-				Token? next = itorToken.Current.Item2[0];
-				if (next == null || !next.IsEndOfExpressionWithParen())
+				if (!itorToken.Current.IsNextEndOfExpressionWithParen())
 				{
 					throw new Exception();
 				}
@@ -240,12 +234,11 @@ namespace Yagiey.Lib.RegularExpressions
 
 				return ret;
 			}
-			else if (curr.IsBeginingOfCharacterClassWithBracket())
+			else if (itorToken.Current.IsBeginingOfCharacterClassWithBracket())
 			{
 				var ret = GetCharacterClass(transitionMap, itorToken, itorID);
 
-				Token? next = itorToken.Current.Item2[0];
-				if (next == null || !next.IsEndOfCharacterClassWithBracket())
+				if (!itorToken.Current.IsNextEndOfCharacterClassWithBracket())
 				{
 					throw new Exception();
 				}
@@ -258,32 +251,37 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 			else
 			{
-				char ch = curr.Source[0];
+				char current = itorToken.Current.Item1;
+				char? next = itorToken.Current.Item2[0];
+
 				itorID.MoveNext();
 				int start = itorID.Current;
 				itorID.MoveNext();
 				int end = itorID.Current;
 
-				if (curr.TokenType == TokenType.Escape && Constants.EscapedChar.Any(_ => _ == ch))
+				if (current == Constants.Backslash && next.HasValue && Constants.EscapedChar.Any(_ => _ == next.Value))
 				{
+					itorToken.MoveNext();
+
+					char nextChar = next.Value;
 					IEnumerable<char> characters;
-					if (ch == Constants.EscapedTab)
+					if (nextChar == Constants.EscapedTab)
 					{
 						characters = new char[] { Constants.Tab };
 					}
-					else if (ch == Constants.EscapedCr)
+					else if (nextChar == Constants.EscapedCr)
 					{
 						characters = new char[] { Constants.CarriageReturn };
 					}
-					else if (ch == Constants.EscapedLf)
+					else if (nextChar == Constants.EscapedLf)
 					{
 						characters = new char[] { Constants.LineFeed };
 					}
-					else if (ch == Constants.EscapedDigit)
+					else if (nextChar == Constants.EscapedDigit)
 					{
 						characters = Enumerable.Range(0, 10).Select(n => Convert.ToChar('0' + n));
 					}
-					else if (ch == Constants.EscapedWhiteSpace)
+					else if (nextChar == Constants.EscapedWhiteSpace)
 					{
 						characters = new char[] { Constants.Tab, Constants.CarriageReturn, Constants.LineFeed, Constants.Space };
 					}
@@ -300,13 +298,22 @@ namespace Yagiey.Lib.RegularExpressions
 				else
 				{
 					Input input;
-					if (curr.TokenType == TokenType.Character && ch == Constants.Dot)
+					if (current == Constants.Dot)
 					{
 						input = new Input(InputType.Negative, Constants.LineFeed);
 					}
+					else if (current == Constants.Backslash)
+					{
+						if (!itorToken.MoveNext())
+						{
+							const string errMsg = "insufficient escaped char";
+							throw new Exception(errMsg);
+						}
+						input = new Input(itorToken.Current.Item1);
+					}
 					else
 					{
-						input = new Input(ch);
+						input = new Input(current);
 					}
 					NFA.AddTransition(transitionMap, start, input, new int[] { end });
 				}
@@ -315,7 +322,7 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 		}
 
-		private static StartAndEnd GetCharacterClass(NFATransitionMap transitionMap, IEnumerator<Tuple<Token, Token?[]>> itorToken, IEnumerator<int> itorID)
+		private static StartAndEnd GetCharacterClass(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			itorID.MoveNext();
 			int start = itorID.Current;
@@ -325,7 +332,7 @@ namespace Yagiey.Lib.RegularExpressions
 			bool isFirst = true;
 			while (true)
 			{
-				Token? next = itorToken.Current.Item2[0];
+				char? next = itorToken.Current.Item2[0];
 
 				if (next == null)
 				{
@@ -333,22 +340,21 @@ namespace Yagiey.Lib.RegularExpressions
 					throw new Exception(ErrMsg);
 				}
 
-				if (isFirst && (next == null || next.IsEndOfCharacterClassWithBracket()))
+				if (isFirst && itorToken.Current.IsNextEndOfCharacterClassWithBracket())
 				{
 					const string ErrMsg = "empty character class";
 					throw new Exception(ErrMsg);
 				}
 
-				if (next.IsEndOfCharacterClassWithBracket())
+				if (itorToken.Current.IsNextEndOfCharacterClassWithBracket())
 				{
 					break;
 				}
 
 				itorToken.MoveNext();
 
-				Token curr = itorToken.Current.Item1;
-				char ch = curr.Source[0];
-				Input input = new Input(ch);
+				char current = itorToken.Current.Item1;
+				Input input = new Input(current);
 				NFA.AddTransition(transitionMap, start, input, new int[] { end });
 				isFirst = false;
 			}

@@ -31,6 +31,12 @@ namespace Yagiey.Lib.RegularExpressions.Extensions.Generic.ValueType
 				i++;
 			}
 
+			int n = 0;
+			if (i < length)
+			{
+				n = length - i;
+			}
+
 			for (int j = 0; j < length; j++)
 			{
 				T? current = future[0];
@@ -39,7 +45,12 @@ namespace Yagiey.Lib.RegularExpressions.Extensions.Generic.ValueType
 					future[k] = future[k + 1];
 				}
 				future[length - 1] = null;
-				yield return Tuple.Create(current!.Value, future);
+
+				if (n <= 0 && current.HasValue)
+				{
+					yield return Tuple.Create(current!.Value, future);
+				}
+				n--;
 			}
 		}
 	}
