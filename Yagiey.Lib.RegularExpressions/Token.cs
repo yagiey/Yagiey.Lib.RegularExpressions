@@ -66,5 +66,21 @@
 				&& Source[0] == Constants.RParen
 				;
 		}
+
+		public bool IsBeginingOfCharacterClassWithBracket()
+		{
+			return
+				TokenType == TokenType.Character
+				&& Source[0] == Constants.LBracket
+				;
+		}
+
+		public bool IsEndOfCharacterClassWithBracket()
+		{
+			return
+				TokenType == TokenType.Character
+				&& Source[0] == Constants.RBracket
+				;
+		}
 	}
 }

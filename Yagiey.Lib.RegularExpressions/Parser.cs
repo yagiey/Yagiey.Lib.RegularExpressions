@@ -32,34 +32,6 @@ namespace Yagiey.Lib.RegularExpressions
 	/// </definition>
 	internal class Parser
 	{
-		const char Tab = '\t';
-		const char CarriageReturn = '\r';
-		const char LineFeed = '\n';
-		const char Space = ' ';
-		const char Underline = '_';
-
-		private const char EscapedTab = 't';
-		private const char EscapedCr = 'r';
-		private const char EscapedLf = 'n';
-		private const char EscapedDigit = 'd';
-		private const char EscapedWhiteSpace = 's';
-		private const char EscapedIdentifier = 'w';
-
-		private static IEnumerable<char> EscapedChar
-		{
-			get
-			{
-				return Enumerable.Empty<char>()
-					.Append(EscapedTab)
-					.Append(EscapedCr)
-					.Append(EscapedLf)
-					.Append(EscapedDigit)
-					.Append(EscapedWhiteSpace)
-					.Append(EscapedIdentifier)
-					;
-			}
-		}
-
 		public NFA EpsilonNFA
 		{
 			get;
@@ -268,6 +240,22 @@ namespace Yagiey.Lib.RegularExpressions
 
 				return ret;
 			}
+			else if (curr.IsBeginingOfCharacterClassWithBracket())
+			{
+				var ret = GetCharacterClass(transitionMap, itorToken, itorID);
+
+				Token? next = itorToken.Current.Item2[0];
+				if (next == null || !next.IsEndOfCharacterClassWithBracket())
+				{
+					throw new Exception();
+				}
+				if (!itorToken.MoveNext())
+				{
+					throw new Exception();
+				}
+
+				return ret;
+			}
 			else
 			{
 				char ch = curr.Source[0];
@@ -276,28 +264,28 @@ namespace Yagiey.Lib.RegularExpressions
 				itorID.MoveNext();
 				int end = itorID.Current;
 
-				if (curr.TokenType == TokenType.Escape && EscapedChar.Any(_ => _ == ch))
+				if (curr.TokenType == TokenType.Escape && Constants.EscapedChar.Any(_ => _ == ch))
 				{
 					IEnumerable<char> characters;
-					if (ch == EscapedTab)
+					if (ch == Constants.EscapedTab)
 					{
-						characters = new char[] { Tab };
+						characters = new char[] { Constants.Tab };
 					}
-					else if (ch == EscapedCr)
+					else if (ch == Constants.EscapedCr)
 					{
-						characters = new char[] { CarriageReturn };
+						characters = new char[] { Constants.CarriageReturn };
 					}
-					else if (ch == EscapedLf)
+					else if (ch == Constants.EscapedLf)
 					{
-						characters = new char[] { LineFeed };
+						characters = new char[] { Constants.LineFeed };
 					}
-					else if (ch == EscapedDigit)
+					else if (ch == Constants.EscapedDigit)
 					{
 						characters = Enumerable.Range(0, 10).Select(n => Convert.ToChar('0' + n));
 					}
-					else if(ch == EscapedWhiteSpace)
+					else if (ch == Constants.EscapedWhiteSpace)
 					{
-						characters = new char[] { Tab, CarriageReturn, LineFeed, Space };
+						characters = new char[] { Constants.Tab, Constants.CarriageReturn, Constants.LineFeed, Constants.Space };
 					}
 					else
 					{
@@ -305,7 +293,7 @@ namespace Yagiey.Lib.RegularExpressions
 							.Concat(Enumerable.Range(0, 26).Select(n => Convert.ToChar('a' + n)))
 							.Concat(Enumerable.Range(0, 26).Select(n => Convert.ToChar('A' + n)))
 							.Concat(Enumerable.Range(0, 10).Select(n => Convert.ToChar('0' + n)))
-							.Append(Underline);
+							.Append(Constants.Underline);
 					}
 					AddTransitions(transitionMap, start, characters, new int[] { end });
 				}
@@ -314,7 +302,7 @@ namespace Yagiey.Lib.RegularExpressions
 					Input input;
 					if (curr.TokenType == TokenType.Character && ch == Constants.Dot)
 					{
-						input = new Input(InputType.Negative, LineFeed);
+						input = new Input(InputType.Negative, Constants.LineFeed);
 					}
 					else
 					{
@@ -325,6 +313,46 @@ namespace Yagiey.Lib.RegularExpressions
 
 				return new StartAndEnd(start, end);
 			}
+		}
+
+		private static StartAndEnd GetCharacterClass(NFATransitionMap transitionMap, IEnumerator<Tuple<Token, Token?[]>> itorToken, IEnumerator<int> itorID)
+		{
+			itorID.MoveNext();
+			int start = itorID.Current;
+			itorID.MoveNext();
+			int end = itorID.Current;
+
+			bool isFirst = true;
+			while (true)
+			{
+				Token? next = itorToken.Current.Item2[0];
+
+				if (next == null)
+				{
+					const string ErrMsg = "unclosed character class";
+					throw new Exception(ErrMsg);
+				}
+
+				if (isFirst && (next == null || next.IsEndOfCharacterClassWithBracket()))
+				{
+					const string ErrMsg = "empty character class";
+					throw new Exception(ErrMsg);
+				}
+
+				if (next.IsEndOfCharacterClassWithBracket())
+				{
+					break;
+				}
+
+				itorToken.MoveNext();
+
+				Token curr = itorToken.Current.Item1;
+				char ch = curr.Source[0];
+				Input input = new Input(ch);
+				NFA.AddTransition(transitionMap, start, input, new int[] { end });
+				isFirst = false;
+			}
+			return new StartAndEnd(start, end);
 		}
 
 		public static NFATransitionMap AddTransitions(NFATransitionMap transitionMap, int start, IEnumerable<char> characters, IEnumerable<int> ends)
