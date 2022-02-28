@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
 	internal struct Input : IComparable<Input>, IEquatable<Input>
 	{
 		public static Input Empty = new();
+
+		private readonly IEnumerable<char> _characters;
 
 		public InputType InputType
 		{
@@ -14,8 +18,10 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 
 		public char Character
 		{
-			get;
-			private set;
+			get
+			{
+				return _characters.First();
+			}
 		}
 
 		public bool IsEmpty
@@ -52,8 +58,14 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 
 		public Input(InputType inputType, char ch)
 		{
-			Character = ch;
+			_characters = new char[] { ch };
 			InputType = inputType;
+		}
+
+		public Input(IEnumerable<char> characters)
+		{
+			_characters = characters.OrderBy(_ => _).Distinct();
+			InputType = InputType.Negative;
 		}
 
 		public bool Match(char ch)
@@ -64,12 +76,12 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			}
 			else if (IsNegative)
 			{
-				return ch != Character;
+				return _characters.All(_ => _ != ch);
 			}
 			else
 			{
 				// IsEmpty
-				return true;
+				return false;
 			}
 		}
 
@@ -107,7 +119,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			{
 				return true;
 			}
-			else if (lhs.InputType == InputType.Negative && lhs.Character == rhs.Character)
+			else if (lhs.InputType == InputType.Negative && lhs._characters.SequenceEqual(rhs._characters))
 			{
 				return true;
 			}
@@ -123,7 +135,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		public override int GetHashCode()
 		{
 			int type = (int)InputType;
-			int ch = Character;
+			int ch = string.Join("", _characters.OrderBy(_ => _)).GetHashCode();
 			return (type << 16) | ch;
 		}
 
@@ -133,13 +145,13 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			{
 				return "<E>";
 			}
-			else if (InputType == InputType.Negative)
+			else if (InputType == InputType.Positive)
 			{
-				return "^" + Character;
+				return Character.ToString();
 			}
 			else
 			{
-				return Character.ToString();
+				return "^" + string.Join("", _characters.OrderBy(_ => _));
 			}
 		}
 
@@ -153,9 +165,14 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			{
 				return 0;
 			}
-			else
+			else if (InputType == InputType.Positive)
 			{
 				return Character.CompareTo(other.Character);
+			}
+			else
+			{
+				IComparer<IEnumerable<char>> comp = new EnumerableComparer<char>();
+				return comp.Compare(_characters, other._characters);
 			}
 		}
 	}

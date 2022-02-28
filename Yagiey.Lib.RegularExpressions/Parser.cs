@@ -334,11 +334,19 @@ namespace Yagiey.Lib.RegularExpressions
 			itorID.MoveNext();
 			int end = itorID.Current;
 
+			char? next = itorToken.Current.Item2[0];
+			bool isNegative = next.HasValue && next == Constants.Hat;
+			List<char> characters = new();
+
 			bool isFirst = true;
 			while (true)
 			{
-				char? next = itorToken.Current.Item2[0];
+				if (isFirst && isNegative)
+				{
+					itorToken.MoveNext();
+				}
 
+				next = itorToken.Current.Item2[0];
 				if (next == null)
 				{
 					const string ErrMsg = "unclosed character class";
@@ -359,10 +367,25 @@ namespace Yagiey.Lib.RegularExpressions
 				itorToken.MoveNext();
 
 				char current = itorToken.Current.Item1;
-				Input input = new Input(current);
-				NFA.AddTransition(transitionMap, start, input, new int[] { end });
+
+				if (isNegative)
+				{
+					characters.Add(current);
+				}
+				else
+				{
+					Input input = new(current);
+					NFA.AddTransition(transitionMap, start, input, new int[] { end });
+				}
 				isFirst = false;
 			}
+
+			if (isNegative)
+			{
+				Input input = new(characters);
+				NFA.AddTransition(transitionMap, start, input, new int[] { end });
+			}
+
 			return new StartAndEnd(start, end);
 		}
 
