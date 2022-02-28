@@ -38,29 +38,34 @@ namespace Yagiey.Lib.RegularExpressions
 			private set;
 		}
 
+		public string Source
+		{
+			get;
+			private set;
+		}
+
 		public Parser(string source)
 		{
-			var lexer = new LexicalAnalyzer(source);
-			var itorToken = lexer.GetEnumerator();
+			Source = source;
+			var itorToken = GetEnumerator();
+			NFATransitionMap transitionMap = new Dictionary<int, IDictionary<Input, IEnumerable<int>>>();
+			IEnumerator<int> itorID = new SequenceNumberEnumerator(0);
 
-			var ret = GetExpression(itorToken);
+			StartAndEnd result = GetExpression(transitionMap, itorToken, itorID);
 
-			int startNode = ret.Item1.Item1;
-			IEnumerable<int> acceptingNodeSet = new int[] { ret.Item1.Item2 };
-			NFATransitionMap transitionMap = ret.Item2;
+			int startNode = result.Item1;
+			IEnumerable<int> acceptingNodeSet = new int[] { result.Item2 };
 
 			EpsilonNFA = new NFA(startNode, acceptingNodeSet, transitionMap);
 		}
 
-		#region parsing
-
-		private static Tuple<StartAndEnd, NFATransitionMap> GetExpression(IEnumerator<Tuple<char, char?[]>> itorToken)
+		private IEnumerator<Tuple<char, char?[]>> GetEnumerator()
 		{
-			NFATransitionMap transitionMap = new Dictionary<int, IDictionary<Input, IEnumerable<int>>>();
-			var itorID = new SequenceNumberEnumerator(0);
-			StartAndEnd result = GetExpression(transitionMap, itorToken, itorID);
-			return Tuple.Create(result, transitionMap);
+			Func<IEnumerable<char>, int, IEnumerable<Tuple<char, char?[]>>> func = Extensions.Generic.ValueType.EnumerableExtension.EnumerateLookingAhead;
+			return func(Source, 1).GetEnumerator();
 		}
+
+		#region parsing
 
 		private static StartAndEnd GetExpression(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
