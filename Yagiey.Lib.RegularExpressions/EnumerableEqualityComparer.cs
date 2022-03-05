@@ -1,26 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions
 {
 	internal class EnumerableEqualityComparer<T> : IEqualityComparer<IEnumerable<T>>
+		where T : IEquatable<T>, IComparable<T>
 	{
-		public IComparer<T> Comparer
-		{
-			get;
-			private set;
-		}
-
-		public EnumerableEqualityComparer() : this(Comparer<T>.Default)
-		{
-		}
-
-		public EnumerableEqualityComparer(IComparer<T> comp)
-		{
-			Comparer = comp;
-		}
-
 		public bool Equals(IEnumerable<T>? x, IEnumerable<T>? y)
 		{
 			if (x == null && y == null)
@@ -49,8 +36,8 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 			else
 			{
-				int result = Comparer.Compare(x.First(), y.First());
-				if (result == 0)
+				bool result = x.First().Equals(y.First());
+				if (result)
 				{
 					return Equals(x.Skip(1), y.Skip(1));
 				}
@@ -63,7 +50,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 		public int GetHashCode([DisallowNull] IEnumerable<T> obj)
 		{
-			string strObj = string.Join(",", obj.Distinct().OrderBy(_ => _, Comparer));
+			string strObj = string.Join(",", obj.Distinct().OrderBy(_ => _));
 			return strObj.GetHashCode();
 		}
 	}

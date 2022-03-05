@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using Yagiey.Lib.RegularExpressions.Automata;
+using Yagiey.Lib.RegularExpressions.Functions;
 
 namespace Yagiey.Lib.RegularExpressions
 {
 	using NFA = NondeterministicFiniteAutomaton;
-	using NFATransitionMap = IDictionary<int, IDictionary<Input, IEnumerable<int>>>;
+	using NFATransitionMap = IDictionary<int, IDictionary<IInput, IEnumerable<int>>>;
 	using StartAndEnd = Tuple<int, int>;
 
 	/// <summary>
@@ -48,7 +49,7 @@ namespace Yagiey.Lib.RegularExpressions
 		{
 			Source = source;
 			var itorToken = GetEnumerator();
-			NFATransitionMap transitionMap = new Dictionary<int, IDictionary<Input, IEnumerable<int>>>();
+			NFATransitionMap transitionMap = new Dictionary<int, IDictionary<IInput, IEnumerable<int>>>();
 			IEnumerator<int> itorID = new SequenceNumberEnumerator(0);
 
 			StartAndEnd result = GetExpression(transitionMap, itorToken, itorID);
@@ -62,7 +63,7 @@ namespace Yagiey.Lib.RegularExpressions
 		private IEnumerator<Tuple<char, char?[]>> GetEnumerator()
 		{
 			Func<IEnumerable<char>, int, IEnumerable<Tuple<char, char?[]>>> func = Extensions.Generic.ValueType.EnumerableExtension.EnumerateLookingAhead;
-			return func(Source, 1).GetEnumerator();
+			return func(Source, 2).GetEnumerator();
 		}
 
 		#region parsing
@@ -302,10 +303,11 @@ namespace Yagiey.Lib.RegularExpressions
 				}
 				else
 				{
-					Input input;
+					IInput input;
 					if (current == Constants.Dot)
 					{
-						input = new Input(InputType.Negative, Constants.LineFeed);
+						Not<char> pred = new(new Equal<char>(Constants.LineFeed));
+						input = new InputWithPredicate(pred);
 					}
 					else if (current == Constants.Backslash)
 					{
@@ -334,8 +336,10 @@ namespace Yagiey.Lib.RegularExpressions
 			itorID.MoveNext();
 			int end = itorID.Current;
 
-			char? next = itorToken.Current.Item2[0];
-			bool isNegative = next.HasValue && next == Constants.Hat;
+			char? next1 = itorToken.Current.Item2[0];
+			bool isNegative = next1.HasValue && next1 == Constants.Hat;
+
+			List<Tuple<char, char>> ranges = new();
 			List<char> characters = new();
 
 			bool isFirst = true;
@@ -346,8 +350,8 @@ namespace Yagiey.Lib.RegularExpressions
 					itorToken.MoveNext();
 				}
 
-				next = itorToken.Current.Item2[0];
-				if (next == null)
+				next1 = itorToken.Current.Item2[0];
+				if (next1 == null)
 				{
 					const string ErrMsg = "unclosed character class";
 					throw new Exception(ErrMsg);
@@ -366,34 +370,88 @@ namespace Yagiey.Lib.RegularExpressions
 
 				itorToken.MoveNext();
 
-				char current = itorToken.Current.Item1;
+				var current = GetCurrentCharacter(itorToken);
+				char currentChar = current.Item2;
 
-				if (isNegative)
+				next1 = itorToken.Current.Item2[0];
+				char? next2 = itorToken.Current.Item2[1];
+
+				bool isRange = next1.HasValue && next1.Value == Constants.Minus && next2.HasValue && next2.Value != Constants.RBracket;
+				if (isRange)
 				{
-					characters.Add(current);
+					char ch1 = currentChar;
+					if (!itorToken.MoveNext() || !itorToken.Current.Item2[0].HasValue || itorToken.Current.Item2[0] == null)
+					{
+						const string errMsg = "insufficient character range";
+						throw new Exception(errMsg);
+					}
+					if (!itorToken.MoveNext())
+					{
+						const string errMsg = "insufficient character range";
+						throw new Exception(errMsg);
+					}
+
+					current = GetCurrentCharacter(itorToken);
+					currentChar = current.Item2;
+
+					char ch2 = currentChar;
+					ranges.Add(Tuple.Create(ch1, ch2));
 				}
 				else
 				{
-					Input input = new(current);
-					NFA.AddTransition(transitionMap, start, input, new int[] { end });
+					characters.Add(currentChar);
 				}
+
 				isFirst = false;
 			}
 
+			IUnaryFunctionObject<bool, char> predicate;
 			if (isNegative)
 			{
-				Input input = new(characters);
-				NFA.AddTransition(transitionMap, start, input, new int[] { end });
+				predicate = new And<char>(
+					Enumerable.Concat<IUnaryFunctionObject<bool, char>>(
+						characters.Select(c => new Not<char>(new Equal<char>(c))),
+						ranges.Select(r => new Not<char>(new GELE<char>(r.Item1, r.Item2)))
+					)
+				);
+			}
+			else
+			{
+				predicate = new Or<char>(
+					Enumerable.Concat<IUnaryFunctionObject<bool, char>>(
+						characters.Select(c => new Equal<char>(c)),
+						ranges.Select(r => new GELE<char>(r.Item1, r.Item2))
+					)
+				);
 			}
 
+			IInput input = new InputWithPredicate(predicate);
+			NFA.AddTransition(transitionMap, start, input, new int[] { end });
 			return new StartAndEnd(start, end);
+		}
+
+		private static Tuple<bool, char> GetCurrentCharacter(IEnumerator<Tuple<char, char?[]>> itorToken)
+		{
+			char crnt = itorToken.Current.Item1;
+			bool isEscape = false;
+			if (crnt == Constants.Backslash)
+			{
+				if (!itorToken.MoveNext())
+				{
+					const string errMsg = "insufficient escaped char";
+					throw new Exception(errMsg);
+				}
+				isEscape = true;
+				crnt = itorToken.Current.Item1;
+			}
+			return Tuple.Create(isEscape, crnt);
 		}
 
 		public static NFATransitionMap AddTransitions(NFATransitionMap transitionMap, int start, IEnumerable<char> characters, IEnumerable<int> ends)
 		{
 			foreach (char ch in characters)
 			{
-				Input input = new Input(ch);
+				Input input = new(ch);
 				NFA.AddTransition(transitionMap, start, input, ends);
 			}
 			return transitionMap;

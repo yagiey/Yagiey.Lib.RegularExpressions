@@ -1,50 +1,40 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
-	internal struct Input : IComparable<Input>, IEquatable<Input>
+	internal class Input : IInput, IComparable<Input>, IEquatable<Input>, IComparable<IInput>, IEquatable<IInput>
 	{
 		public static Input Empty = new();
 
-		private readonly IEnumerable<char> _characters;
-
-		public InputType InputType
-		{
-			get;
-			private set;
-		}
+		private readonly InputType _inputType;
 
 		public char Character
 		{
-			get
-			{
-				return _characters.First();
-			}
+			get;
+			private set;
 		}
 
 		public bool IsEmpty
 		{
 			get
 			{
-				return InputType == InputType.Empty;
+				return _inputType == InputType.Empty;
 			}
 		}
 
-		public bool IsPositive
+		public bool IsLiteral
 		{
 			get
 			{
-				return InputType == InputType.Positive;
+				return _inputType == InputType.Literal;
 			}
 		}
 
-		public bool IsNegative
+		public bool IsPredicate
 		{
 			get
 			{
-				return InputType == InputType.Negative;
+				return false;
 			}
 		}
 
@@ -52,78 +42,119 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		{
 		}
 
-		public Input(char ch) : this(InputType.Positive, ch)
+		public Input(char ch) : this(InputType.Literal, ch)
 		{
 		}
 
-		public Input(InputType inputType, char ch)
+		private Input(InputType inputType, char ch)
 		{
-			_characters = new char[] { ch };
-			InputType = inputType;
-		}
-
-		public Input(IEnumerable<char> characters)
-		{
-			_characters = characters.OrderBy(_ => _).Distinct();
-			InputType = InputType.Negative;
+			Character = ch;
+			_inputType = inputType;
 		}
 
 		public bool Match(char ch)
 		{
-			if (IsPositive)
+			if (IsEmpty)
 			{
-				return ch == Character;
-			}
-			else if (IsNegative)
-			{
-				return _characters.All(_ => _ != ch);
+				return false;
 			}
 			else
 			{
-				// IsEmpty
-				return false;
+				return ch == Character;
 			}
 		}
 
-		public bool Equals(Input other)
+		public int CompareTo(Input? other)
 		{
-			return this == other;
+			if (other is null)
+			{
+				return 1;
+			}
+			else if (_inputType != other._inputType)
+			{
+				return _inputType.CompareTo(other._inputType);
+			}
+			else if (_inputType == InputType.Empty)
+			{
+				return 0;
+			}
+			else
+			{
+				return Character.CompareTo(other.Character);
+			}
 		}
 
-		public override bool Equals(object? obj)
+		public int CompareTo(IInput? other)
 		{
-			if (obj == null)
+			if (other is null)
+			{
+				return 1;
+			}
+			else if (other is Input)
+			{
+				Input? o = other as Input;
+				return CompareTo(o);
+			}
+			else if (other is InputWithPredicate)
+			{
+				return -1;
+			}
+			else
+			{
+				throw new Exception();
+			}
+		}
+
+		public bool Equals(Input? other)
+		{
+			if (other is null)
 			{
 				return false;
 			}
-
-			if (obj is Input o)
-			{
-				return this == o;
-			}
-
-			return false;
-		}
-
-		public static bool operator ==(Input lhs, Input rhs)
-		{
-			if (lhs.InputType != rhs.InputType)
+			else if (_inputType != other._inputType)
 			{
 				return false;
 			}
-			else if (lhs.InputType == InputType.Empty)
+			else if (_inputType == InputType.Empty)
 			{
 				return true;
 			}
-			else if (lhs.InputType == InputType.Positive && lhs.Character == rhs.Character)
+			else
+			{
+				return Character.Equals(other.Character);
+			}
+		}
+
+		public bool Equals(IInput? other)
+		{
+			Input? o = other as Input;
+			return Equals(o);
+		}
+
+		public override bool Equals(object? other)
+		{
+			Input? o = other as Input;
+			return Equals(o);
+		}
+
+		public static bool operator ==(Input? lhs, Input? rhs)
+		{
+			if (lhs is null && rhs is null)
 			{
 				return true;
 			}
-			else if (lhs.InputType == InputType.Negative && lhs._characters.SequenceEqual(rhs._characters))
+			else if (lhs is null)
 			{
-				return true;
+				return false;
 			}
-			return false;
+			else if (rhs is null)
+			{
+				return false;
+			}
+			else
+			{
+				return lhs.Equals(rhs);
+			}
 		}
 
 		public static bool operator !=(Input lhs, Input rhs)
@@ -134,45 +165,19 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 
 		public override int GetHashCode()
 		{
-			int type = (int)InputType;
-			int ch = string.Join("", _characters.OrderBy(_ => _)).GetHashCode();
-			return (type << 16) | ch;
+			int type = (int)_inputType;
+			return (type << 16) | Character;
 		}
 
 		public override string ToString()
 		{
-			if (InputType == InputType.Empty)
+			if (_inputType == InputType.Empty)
 			{
 				return "<E>";
 			}
-			else if (InputType == InputType.Positive)
+			else
 			{
 				return Character.ToString();
-			}
-			else
-			{
-				return "^" + string.Join("", _characters.OrderBy(_ => _));
-			}
-		}
-
-		public int CompareTo(Input other)
-		{
-			if (InputType != other.InputType)
-			{
-				return InputType.CompareTo(other.InputType);
-			}
-			else if (InputType == InputType.Empty)
-			{
-				return 0;
-			}
-			else if (InputType == InputType.Positive)
-			{
-				return Character.CompareTo(other.Character);
-			}
-			else
-			{
-				IComparer<IEnumerable<char>> comp = new EnumerableComparer<char>();
-				return comp.Compare(_characters, other._characters);
 			}
 		}
 	}

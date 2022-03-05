@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
-	using NFATransitionMap = IDictionary<int, IDictionary<Input, IEnumerable<int>>>;
+	using NFATransitionMap = IDictionary<int, IDictionary<IInput, IEnumerable<int>>>;
 
 	internal class NondeterministicFiniteAutomaton
 	{
@@ -38,7 +38,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			{
 				int node = pair1.Key;
 				result = result.Append(node);
-				IDictionary<Input, IEnumerable<int>> dic = pair1.Value;
+				IDictionary<IInput, IEnumerable<int>> dic = pair1.Value;
 				foreach (var pair2 in dic)
 				{
 					IEnumerable<int> destination = pair2.Value;
@@ -48,15 +48,15 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			return result.Distinct().OrderBy(_ => _);
 		}
 
-		public IEnumerable<Input> GetAllInputs(bool includingEmpty)
+		public IEnumerable<IInput> GetAllInputs(bool includingEmpty)
 		{
-			IEnumerable<Input> result = Enumerable.Empty<Input>();
+			IEnumerable<IInput> result = Enumerable.Empty<IInput>();
 			foreach (var pair1 in TransitionMap)
 			{
-				IDictionary<Input, IEnumerable<int>> dic = pair1.Value;
+				IDictionary<IInput, IEnumerable<int>> dic = pair1.Value;
 				foreach (var pair2 in dic)
 				{
-					Input input = pair2.Key;
+					IInput input = pair2.Key;
 					if (!includingEmpty && input.IsEmpty)
 					{
 						continue;
@@ -74,13 +74,13 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			lines.Add(string.Format("accepting: [{0}]", string.Join(",", AcceptingNodeSet)));
 			foreach (var pair in TransitionMap.OrderBy(_ => _.Key))
 			{
-				var strMap = string.Join(",", pair.Value.OrderBy(_ => _.Key).Select(pair2 => string.Format("ch({0})->[{1}]", (int)pair2.Key.Character, string.Join(",", pair2.Value.OrderBy(_ => _)))));
+				var strMap = string.Join(",", pair.Value.OrderBy(_ => _.Key).Select(pair2 => string.Format("{0}->[{1}]", pair2.Key is Input ? string.Format("ch({0})", (int)(pair2.Key as Input)!.Character) : pair2.ToString(), string.Join(",", pair2.Value.OrderBy(_ => _)))));
 				lines.Add(string.Format("{0}:{1}", pair.Key, strMap));
 			}
 			return string.Join("\r\n", lines);
 		}
 
-		public static NFATransitionMap AddTransition(NFATransitionMap transitionMap, int node, Input input, IEnumerable<int> dest)
+		public static NFATransitionMap AddTransition(NFATransitionMap transitionMap, int node, IInput input, IEnumerable<int> dest)
 		{
 			if (transitionMap.ContainsKey(node))
 			{
@@ -97,7 +97,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			}
 			else
 			{
-				IDictionary<Input, IEnumerable<int>> dic = new Dictionary<Input, IEnumerable<int>>
+				IDictionary<IInput, IEnumerable<int>> dic = new Dictionary<IInput, IEnumerable<int>>
 				{
 					{ input, dest }
 				};

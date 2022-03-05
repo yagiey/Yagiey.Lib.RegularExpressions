@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
-	using DFATransitionMap = IDictionary<int, IDictionary<Input, int>>;
+	using DFATransitionMap = IDictionary<int, IDictionary<IInput, int>>;
 
 	internal class DeterministicFiniteAutomaton : IDeterministicFiniteAutomaton<char>
 	{
@@ -43,7 +43,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			{
 				int node = pair1.Key;
 				result = result.Append(node);
-				IDictionary<Input, int> dic = pair1.Value;
+				IDictionary<IInput, int> dic = pair1.Value;
 				foreach (var pair2 in dic)
 				{
 					int destination = pair2.Value;
@@ -53,7 +53,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			return result.Distinct().OrderBy(_ => _);
 		}
 
-		public static DFATransitionMap AddTransition(DFATransitionMap transitionMap, int node, Input input, int dest)
+		public static DFATransitionMap AddTransition(DFATransitionMap transitionMap, int node, IInput input, int dest)
 		{
 			if (transitionMap.ContainsKey(node))
 			{
@@ -62,7 +62,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			}
 			else
 			{
-				IDictionary<Input, int> dic = new Dictionary<Input, int>
+				IDictionary<IInput, int> dic = new Dictionary<IInput, int>
 				{
 					{ input, dest }
 				};
@@ -78,7 +78,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			lines.Add(string.Format("accepting: [{0}]", string.Join(",", AcceptingNodeSet)));
 			foreach (var pair in TransitionMap.OrderBy(_ => _.Key))
 			{
-				var strMap = string.Join(",", pair.Value.OrderBy(_ => _.Key).Select(pair2 => string.Format("ch({0})->{1}", (int)pair2.Key.Character, pair2.Value)));
+				var strMap = string.Join(",", pair.Value.OrderBy(_ => _.Key).Select(pair2 => string.Format("{0}->{1}", pair2.Key is Input ? string.Format("ch({0})", (int)(pair2.Key as Input)!.Character) : pair2.Key.ToString(), pair2.Value)));
 				lines.Add(string.Format("{0}:{1}", pair.Key, strMap));
 			}
 			return string.Join("\r\n", lines);
@@ -111,7 +111,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 				return Tuple.Create(false, 0);
 			}
 
-			bool result = transitionMap.TryGetValue(current, out IDictionary<Input, int>? dic);
+			bool result = transitionMap.TryGetValue(current, out IDictionary<IInput, int>? dic);
 			if (!result || dic == null)
 			{
 				return Tuple.Create(false, 0);
@@ -125,10 +125,10 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 				}
 				else
 				{
-					var dic2 = GetTransitionsExceptPositive(dic);
+					var dic2 = GetTransitionsWithPredicate(dic);
 					foreach (var pair in dic2)
 					{
-						Input key = pair.Key;
+						IInput key = pair.Key;
 						if (key.Match(ch))
 						{
 							return Tuple.Create(true, pair.Value);
@@ -139,9 +139,9 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			}
 		}
 
-		private static IDictionary<Input, int> GetTransitionsExceptPositive(IDictionary<Input, int> map)
+		private static IDictionary<IInput, int> GetTransitionsWithPredicate(IDictionary<IInput, int> map)
 		{
-			return new Dictionary<Input, int>(map.Where(_ => !_.Key.IsPositive && !_.Key.IsEmpty));
+			return new Dictionary<IInput, int>(map.Where(_ => _.Key.IsPredicate));
 		}
 
 		public bool IsInitialState()

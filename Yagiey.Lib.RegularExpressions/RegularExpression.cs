@@ -7,9 +7,9 @@ using Yagiey.Lib.RegularExpressions.Extensions.Generic;
 namespace Yagiey.Lib.RegularExpressions
 {
 	using DFA = DeterministicFiniteAutomaton;
-	using DFATransitionMap = IDictionary<int, IDictionary<Input, int>>;
+	using DFATransitionMap = IDictionary<int, IDictionary<IInput, int>>;
 	using NFA = NondeterministicFiniteAutomaton;
-	using NFATransitionMap = IDictionary<int, IDictionary<Input, IEnumerable<int>>>;
+	using NFATransitionMap = IDictionary<int, IDictionary<IInput, IEnumerable<int>>>;
 
 	public class RegularExpression : IDeterministicFiniteAutomaton<char>
 	{
@@ -55,10 +55,10 @@ namespace Yagiey.Lib.RegularExpressions
 				newAcceptingNodeSet = acceptingNodeSet;
 			}
 
-			NFATransitionMap newTransitionMap = new Dictionary<int, IDictionary<Input, IEnumerable<int>>>();
+			NFATransitionMap newTransitionMap = new Dictionary<int, IDictionary<IInput, IEnumerable<int>>>();
 			foreach (var node in allNodes)
 			{
-				foreach (var input in allInputs)
+				foreach (IInput input in allInputs)
 				{
 					var destination = TransitionFunction(node, input, transitionMap, eClosures).Distinct().ToArray();
 					if (destination.Length == 0)
@@ -90,7 +90,7 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 
 			IEnumerable<int>? e;
-			transitions.TryGetValue(node, out IDictionary<Input, IEnumerable<int>>? dic);
+			transitions.TryGetValue(node, out IDictionary<IInput, IEnumerable<int>>? dic);
 			if (dic == null)
 			{
 				return new int[] { node };
@@ -130,13 +130,13 @@ namespace Yagiey.Lib.RegularExpressions
 			return destinations.Distinct();
 		}
 
-		private static IEnumerable<int> TransitionFunction(IEnumerable<int> nodeSet, Input input, NFATransitionMap transitionMap)
+		private static IEnumerable<int> TransitionFunction(IEnumerable<int> nodeSet, IInput input, NFATransitionMap transitionMap)
 		{
 			IEnumerable<int> ret = Enumerable.Empty<int>();
 			foreach (int node in nodeSet)
 			{
 				IEnumerable<int>? e;
-				transitionMap.TryGetValue(node, out IDictionary<Input, IEnumerable<int>>? dic);
+				transitionMap.TryGetValue(node, out IDictionary<IInput, IEnumerable<int>>? dic);
 				if (dic == null)
 				{
 					continue;
@@ -164,7 +164,7 @@ namespace Yagiey.Lib.RegularExpressions
 			return result.Distinct();
 		}
 
-		private static IEnumerable<int> TransitionFunction(int node, Input input, NFATransitionMap transitionMap, IDictionary<int, IEnumerable<int>> eClosure)
+		private static IEnumerable<int> TransitionFunction(int node, IInput input, NFATransitionMap transitionMap, IDictionary<int, IEnumerable<int>> eClosure)
 		{
 			var c = EpsilonClosure(new int[] { node }, eClosure);
 			var e = TransitionFunction(c, input, transitionMap);
@@ -177,7 +177,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 		private static DFA ToDFA(NFA nfa)
 		{
-			IEnumerable<Input> allInputs = nfa.GetAllInputs(false);
+			IEnumerable<IInput> allInputs = nfa.GetAllInputs(false);
 			IEnumerable<int> nodeSet = new int[] { nfa.StartNode };
 			var result = SubsetConstruction(nodeSet, allInputs, nfa.TransitionMap);
 
@@ -189,10 +189,10 @@ namespace Yagiey.Lib.RegularExpressions
 			return new DFA(startNode, acceptingNodeSet, dfaTransitionMap);
 		}
 
-		private static Tuple<DFATransitionMap, IDictionary<IEnumerable<int>, int>> SubsetConstruction(IEnumerable<int> start, IEnumerable<Input> allInputs, NFATransitionMap transitionMap)
+		private static Tuple<DFATransitionMap, IDictionary<IEnumerable<int>, int>> SubsetConstruction(IEnumerable<int> start, IEnumerable<IInput> allInputs, NFATransitionMap transitionMap)
 		{
 			IEnumerator<int> itorID = new SequenceNumberEnumerator(0);
-			DFATransitionMap newMap = new Dictionary<int, IDictionary<Input, int>>();
+			DFATransitionMap newMap = new Dictionary<int, IDictionary<IInput, int>>();
 			IDictionary<IEnumerable<int>, int> done = new Dictionary<IEnumerable<int>, int>(new IntSetEqualityComparer());
 
 			SubsetConstruction(start, allInputs, transitionMap, itorID, newMap, done);
@@ -200,7 +200,7 @@ namespace Yagiey.Lib.RegularExpressions
 			return Tuple.Create(newMap, done);
 		}
 
-		private static void SubsetConstruction(IEnumerable<int> nodeSet, IEnumerable<Input> allInputs, NFATransitionMap transitionMap, IEnumerator<int> itorID, DFATransitionMap newMap, IDictionary<IEnumerable<int>, int> done)
+		private static void SubsetConstruction(IEnumerable<int> nodeSet, IEnumerable<IInput> allInputs, NFATransitionMap transitionMap, IEnumerator<int> itorID, DFATransitionMap newMap, IDictionary<IEnumerable<int>, int> done)
 		{
 			if (done.ContainsKey(nodeSet))
 			{
@@ -211,7 +211,7 @@ namespace Yagiey.Lib.RegularExpressions
 			int id = itorID.Current;
 			done.Add(nodeSet, id);
 
-			foreach (Input input in allInputs)
+			foreach (IInput input in allInputs)
 			{
 				IEnumerable<int> destinations = TransitionFunction(nodeSet, input, transitionMap);
 				if (destinations.Any())
@@ -246,16 +246,17 @@ namespace Yagiey.Lib.RegularExpressions
 				}
 			}
 
-			IEqualityComparer<IEnumerable<IEnumerable<int>>> eqComp
-				= new EnumerableEqualityComparer<IEnumerable<int>>(new EnumerableComparer<int>());
-
+			IEqualityComparer<IEnumerable<int>> eqComp = new EnumerableEqualityComparer<int>();
 			IDictionary<int, int> node2Group;
 			while (true)
 			{
 				var newGroups = MakeGroup(group2Nodes, dfa.TransitionMap);
 				IDictionary<int, HashSet<int>> group2NodesNew = newGroups.Item2;
 
-				bool isEq = eqComp.Equals(group2Nodes.Values, group2NodesNew.Values);
+				bool isEq =
+					group2Nodes.Values.All(o => group2NodesNew.Values.Any(n => eqComp.Equals(o, n)))
+					 && group2NodesNew.Values.All(n => group2Nodes.Values.Any(o => eqComp.Equals(n, o)));
+
 				group2Nodes = group2NodesNew;
 				node2Group = newGroups.Item1;
 				if (isEq)
@@ -267,7 +268,7 @@ namespace Yagiey.Lib.RegularExpressions
 			// make new DFA
 			int startNode = -1;
 			IEnumerable<int> acceptingNodeSet = Enumerable.Empty<int>();
-			DFATransitionMap transitionMap = new Dictionary<int, IDictionary<Input, int>>();
+			DFATransitionMap transitionMap = new Dictionary<int, IDictionary<IInput, int>>();
 			foreach (var pair in group2Nodes)
 			{
 				int groupID = pair.Key;
@@ -285,15 +286,15 @@ namespace Yagiey.Lib.RegularExpressions
 
 				int nodeIDOrg = members.First();
 
-				dfa.TransitionMap.TryGetValue(nodeIDOrg, out IDictionary<Input, int>? trans);
+				dfa.TransitionMap.TryGetValue(nodeIDOrg, out IDictionary<IInput, int>? trans);
 				if (trans == null)
 				{
 					continue;
 				}
 
-				IDictionary<Input, int> transNew =
-					new Dictionary<Input, int>(
-						trans.Select(_ => new KeyValuePair<Input, int>(_.Key, node2Group[_.Value]))
+				IDictionary<IInput, int> transNew =
+					new Dictionary<IInput, int>(
+						trans.Select(_ => new KeyValuePair<IInput, int>(_.Key, node2Group[_.Value]))
 					);
 				transitionMap.Add(groupID, transNew);
 			}
@@ -312,7 +313,7 @@ namespace Yagiey.Lib.RegularExpressions
 			{
 				foreach (int nodeID in group2Nodes[groupID])
 				{
-					transitionMap.TryGetValue(nodeID, out IDictionary<Input, int>? trans);
+					transitionMap.TryGetValue(nodeID, out IDictionary<IInput, int>? trans);
 
 					string id;
 					if (trans == null)
@@ -321,7 +322,10 @@ namespace Yagiey.Lib.RegularExpressions
 					}
 					else
 					{
-						id = string.Join("|", trans.OrderBy(_ => _.Key).Select(_ => string.Format("{0}:{1}", (int)_.Key.Character, _.Value)));
+						id = string.Join(
+							"|",
+							trans.OrderBy(_ => _.Key).Select(_ => string.Format("{0}:{1}", _.Key is Input ? string.Format("ch({0})", (int)(_.Key as Input)!.Character) : _.Key.ToString(), _.Value))
+						);
 					}
 
 					if (map.TryGetValue(id, out int newGroupID))

@@ -3,7 +3,6 @@
 	internal enum InputType : byte
 	{
 		Empty,
-		Positive,
-		Negative,
+		Literal,
 	}
 }

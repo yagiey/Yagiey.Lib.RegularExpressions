@@ -1,21 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions
 {
 	internal class EnumerableComparer<T> : IComparer<IEnumerable<T>>
+		where T : IEquatable<T>, IComparable<T>
 	{
-		private readonly IComparer<T> _comp;
-
-		public EnumerableComparer() : this(Comparer<T>.Default)
-		{
-		}
-
-		public EnumerableComparer(IComparer<T> comp)
-		{
-			_comp = comp;
-		}
-
 		public int Compare(IEnumerable<T>? x, IEnumerable<T>? y)
 		{
 			if (x == null && y == null)
@@ -44,7 +35,7 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 			else
 			{
-				int result = _comp.Compare(x.First(), y.First());
+				int result = x.First().CompareTo(y.First());
 				if (result == 0)
 				{
 					return Compare(x.Skip(1), y.Skip(1));
