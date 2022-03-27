@@ -393,8 +393,8 @@ namespace Yagiey.Lib.RegularExpressions
 
 					current = GetCurrentCharacter(itorToken);
 					currentChar = current.Item2;
-
 					char ch2 = currentChar;
+
 					ranges.Add(Tuple.Create(ch1, ch2));
 				}
 				else
@@ -409,20 +409,18 @@ namespace Yagiey.Lib.RegularExpressions
 			if (isNegative)
 			{
 				predicate = new And<char>(
-					Enumerable.Concat<IUnaryFunctionObject<bool, char>>(
-						characters.Select(c => new Not<char>(new Equal<char>(c))),
-						ranges.Select(r => new Not<char>(new GELE<char>(r.Item1, r.Item2)))
-					)
-				);
+					Enumerable.Empty<IUnaryFunctionObject<bool, char>>()
+						.Concat(characters.Select(c => new Not<char>(new Equal<char>(c))))
+						.Concat(ranges.Select(r => new Not<char>(new GELE<char>(r.Item1, r.Item2))))
+					);
 			}
 			else
 			{
 				predicate = new Or<char>(
-					Enumerable.Concat<IUnaryFunctionObject<bool, char>>(
-						characters.Select(c => new Equal<char>(c)),
-						ranges.Select(r => new GELE<char>(r.Item1, r.Item2))
-					)
-				);
+					Enumerable.Empty<IUnaryFunctionObject<bool, char>>()
+						.Concat(characters.Select(c => new Equal<char>(c)))
+						.Concat(ranges.Select(r => new GELE<char>(r.Item1, r.Item2)))
+					);
 			}
 
 			IInput input = new InputWithPredicate(predicate);

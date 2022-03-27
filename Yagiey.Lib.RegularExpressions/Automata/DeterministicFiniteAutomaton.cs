@@ -11,11 +11,18 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		private int _state;
 		private bool _isError;
 
-		public DeterministicFiniteAutomaton(int startNode, IEnumerable<int> acceptingNodeSet, DFATransitionMap transitionMap)
+		public DeterministicFiniteAutomaton(int startNode, IEnumerable<int> acceptingNodeSet, DFATransitionMap transitionMap, bool ignoreCase)
 		{
 			StartNode = startNode;
 			AcceptingNodeSet = acceptingNodeSet;
 			TransitionMap = transitionMap;
+			IgnoreCase = ignoreCase;
+		}
+
+		public bool IgnoreCase
+		{
+			get;
+			private set;
 		}
 
 		public int StartNode
@@ -95,13 +102,27 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		public void MoveNext(char ch)
 		{
 			var result = GetNext(ch, _state, TransitionMap, IsError());
-			if (!result.Item1)
+			if (result.Item1)
 			{
-				_isError = true;
+				_state = result.Item2;
 				return;
 			}
 
-			_state = result.Item2;
+			if (IgnoreCase)
+			{
+				char? corr = ToCorrespondingCase(ch);
+				if (corr.HasValue)
+				{
+					var result2 = GetNext(corr.Value, _state, TransitionMap, IsError());
+					if (result2.Item1)
+					{
+						_state = result2.Item2;
+						return;
+					}
+				}
+			}
+
+			_isError = true;
 		}
 
 		private static Tuple<bool, int> GetNext(char ch, int current, DFATransitionMap transitionMap, bool isError)
@@ -175,5 +196,31 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		}
 
 		#endregion
+
+		private static char? ToCorrespondingCase(char ch)
+		{
+			if (IsUpperCase(ch))
+			{
+				return char.ToLower(ch);
+			}
+			else if (IsLowerCase(ch))
+			{
+				return char.ToUpper(ch);
+			}
+			else
+			{
+				return null;
+			}
+		}
+
+		private static bool IsUpperCase(char ch)
+		{
+			return 'A' <= ch && ch <= 'Z';
+		}
+
+		private static bool IsLowerCase(char ch)
+		{
+			return 'a' <= ch && ch <= 'z';
+		}
 	}
 }

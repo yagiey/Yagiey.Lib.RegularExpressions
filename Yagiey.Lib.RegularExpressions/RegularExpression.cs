@@ -15,12 +15,12 @@ namespace Yagiey.Lib.RegularExpressions
 	{
 		private readonly DFA _dfa;
 
-		public RegularExpression(string source)
+		public RegularExpression(string source, bool ignoreCase)
 		{
 			Parser parser = new(source);
 			NFA nfa = ToNFA(parser.EpsilonNFA);
-			DFA dfa = ToDFA(nfa);
-			_dfa = MinimizeDFA(dfa);
+			DFA dfa = ToDFA(nfa, ignoreCase);
+			_dfa = MinimizeDFA(dfa, ignoreCase);
 		}
 
 		#region conversion εNFA to NFA
@@ -175,7 +175,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 		#region conversion NFA to DFA
 
-		private static DFA ToDFA(NFA nfa)
+		private static DFA ToDFA(NFA nfa, bool ignoreCase)
 		{
 			IEnumerable<IInput> allInputs = nfa.GetAllInputs(false);
 			IEnumerable<int> nodeSet = new int[] { nfa.StartNode };
@@ -186,7 +186,7 @@ namespace Yagiey.Lib.RegularExpressions
 			int startNode = nodeMap[nodeSet];
 			var acceptingNodeSet = nodeMap.Where(_ => _.Key.Intersect(nfa.AcceptingNodeSet).Any()).Select(_ => _.Value).Distinct();
 
-			return new DFA(startNode, acceptingNodeSet, dfaTransitionMap);
+			return new DFA(startNode, acceptingNodeSet, dfaTransitionMap, ignoreCase);
 		}
 
 		private static Tuple<DFATransitionMap, IDictionary<IEnumerable<int>, int>> SubsetConstruction(IEnumerable<int> start, IEnumerable<IInput> allInputs, NFATransitionMap transitionMap)
@@ -229,7 +229,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 		#region DFA minimization
 
-		private static DFA MinimizeDFA(DFA dfa)
+		private static DFA MinimizeDFA(DFA dfa, bool ignoreCase)
 		{
 			bool isAcc(int node) => dfa.AcceptingNodeSet.Any(_ => _ == node);
 			IDictionary<int, HashSet<int>> group2Nodes = new Dictionary<int, HashSet<int>>();
@@ -279,7 +279,7 @@ namespace Yagiey.Lib.RegularExpressions
 					acceptingNodeSet = acceptingNodeSet.Append(groupID);
 				}
 
-				if(members.Any(_ => _ == dfa.StartNode))
+				if (members.Any(_ => _ == dfa.StartNode))
 				{
 					startNode = groupID;
 				}
@@ -299,7 +299,7 @@ namespace Yagiey.Lib.RegularExpressions
 				transitionMap.Add(groupID, transNew);
 			}
 
-			return new DFA(startNode, acceptingNodeSet, transitionMap);
+			return new DFA(startNode, acceptingNodeSet, transitionMap, ignoreCase);
 		}
 
 		private static Tuple<IDictionary<int, int>, IDictionary<int, HashSet<int>>> MakeGroup(IDictionary<int, HashSet<int>> group2Nodes, DFATransitionMap transitionMap)
