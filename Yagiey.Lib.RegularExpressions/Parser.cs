@@ -265,7 +265,7 @@ namespace Yagiey.Lib.RegularExpressions
 				itorID.MoveNext();
 				int end = itorID.Current;
 
-				if (current == Constants.Backslash && next.HasValue && Constants.EscapedChar.Any(_ => _ == next.Value))
+				if (current == Constants.Backslash && next.HasValue && Constants.EscapedCharacters.Any(_ => _ == next.Value))
 				{
 					itorToken.MoveNext();
 
@@ -291,7 +291,7 @@ namespace Yagiey.Lib.RegularExpressions
 					{
 						characters = new char[] { Constants.Tab, Constants.CarriageReturn, Constants.LineFeed, Constants.Space };
 					}
-					else
+					else// if (nextChar == Constants.EscapedIdentifier)
 					{
 						characters = Enumerable.Empty<char>()
 							.Concat(Enumerable.Range(0, 26).Select(n => Convert.ToChar('a' + n)))
@@ -368,10 +368,27 @@ namespace Yagiey.Lib.RegularExpressions
 					break;
 				}
 
-				itorToken.MoveNext();
-
-				var current = GetCurrentCharacter(itorToken);
-				char currentChar = current.Item2;
+				var current = GetNextCharacter(itorToken);
+				char currentChar;
+				if (current.Item1 && Constants.ControlCharacters.Any(it => it == current.Item2))
+				{
+					if (current.Item2 == Constants.EscapedTab)
+					{
+						currentChar = Constants.Tab;
+					}
+					else if (current.Item2 == Constants.EscapedCr)
+					{
+						currentChar = Constants.CarriageReturn;
+					}
+					else// if (current.Item2 == Constants.EscapedLf)
+					{
+						currentChar = Constants.LineFeed;
+					}
+				}
+				else
+				{
+					currentChar = current.Item2;
+				}
 
 				next1 = itorToken.Current.Item2[0];
 				char? next2 = itorToken.Current.Item2[1];
@@ -385,13 +402,8 @@ namespace Yagiey.Lib.RegularExpressions
 						const string errMsg = "insufficient character range";
 						throw new Exception(errMsg);
 					}
-					if (!itorToken.MoveNext())
-					{
-						const string errMsg = "insufficient character range";
-						throw new Exception(errMsg);
-					}
 
-					current = GetCurrentCharacter(itorToken);
+					current = GetNextCharacter(itorToken);
 					currentChar = current.Item2;
 					char ch2 = currentChar;
 
@@ -428,16 +440,22 @@ namespace Yagiey.Lib.RegularExpressions
 			return new StartAndEnd(start, end);
 		}
 
-		private static Tuple<bool, char> GetCurrentCharacter(IEnumerator<Tuple<char, char?[]>> itorToken)
+		private static Tuple<bool, char> GetNextCharacter(IEnumerator<Tuple<char, char?[]>> itorToken)
 		{
+			if (!itorToken.MoveNext())
+			{
+				const string ErrMsg = "unexpected EOF";
+				throw new Exception(ErrMsg);
+			}
+
 			char crnt = itorToken.Current.Item1;
 			bool isEscape = false;
 			if (crnt == Constants.Backslash)
 			{
 				if (!itorToken.MoveNext())
 				{
-					const string errMsg = "insufficient escaped char";
-					throw new Exception(errMsg);
+					const string ErrMsg = "insufficient escaped char";
+					throw new Exception(ErrMsg);
 				}
 				isEscape = true;
 				crnt = itorToken.Current.Item1;

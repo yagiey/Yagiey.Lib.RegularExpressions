@@ -31,11 +31,12 @@ namespace Yagiey.Lib.RegularExpressions
 		public const char EscapedTab = 't';
 		public const char EscapedCr = 'r';
 		public const char EscapedLf = 'n';
+
 		public const char EscapedDigit = 'd';
 		public const char EscapedWhiteSpace = 's';
 		public const char EscapedIdentifier = 'w';
 
-		public static IEnumerable<char> EscapedChar
+		public static IEnumerable<char> ControlCharacters
 		{
 			get
 			{
@@ -43,6 +44,16 @@ namespace Yagiey.Lib.RegularExpressions
 					.Append(EscapedTab)
 					.Append(EscapedCr)
 					.Append(EscapedLf)
+					;
+			}
+		}
+
+		public static IEnumerable<char> EscapedCharacters
+		{
+			get
+			{
+				return Enumerable.Empty<char>()
+					.Concat(ControlCharacters)
 					.Append(EscapedDigit)
 					.Append(EscapedWhiteSpace)
 					.Append(EscapedIdentifier)
