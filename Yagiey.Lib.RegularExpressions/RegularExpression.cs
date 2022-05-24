@@ -15,12 +15,24 @@ namespace Yagiey.Lib.RegularExpressions
 	{
 		private readonly DFA _dfa;
 
+		public string Source
+		{
+			get;
+			private set;
+		}
+
 		public RegularExpression(string source, bool ignoreCase)
 		{
 			Parser parser = new(source);
+			Source = source;
 			NFA nfa = ToNFA(parser.EpsilonNFA);
 			DFA dfa = ToDFA(nfa, ignoreCase);
 			_dfa = MinimizeDFA(dfa, ignoreCase);
+		}
+
+		public override string ToString()
+		{
+			return _dfa.ToString();
 		}
 
 		#region conversion εNFA to NFA
