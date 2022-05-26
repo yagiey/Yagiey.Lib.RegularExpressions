@@ -8,7 +8,7 @@ namespace Yagiey.Lib.RegularExpressions
 {
 	using NFA = NondeterministicFiniteAutomaton;
 	using NFATransitionMap = IDictionary<int, IDictionary<IInput, IEnumerable<int>>>;
-	using StartAndEnd = Tuple<int, int>;
+	using SubNFA = Tuple<int, int, IDictionary<int, IDictionary<IInput, IEnumerable<int>>>>;
 
 	/// <summary>
 	/// parser for regular expression
@@ -16,7 +16,7 @@ namespace Yagiey.Lib.RegularExpressions
 	/// <definition>
 	/// expression = level2, { vertical_bar, level2 }
 	/// level2 = level1, { level1 }
-	/// level1 = level0 | level0, question | level0, asterisk
+	/// level1 = level0 | level0, question | level0, asterisk | level0, plus
 	/// level0 = all_characters | lparen, expression, rparen
 	/// 
 	/// all_characters = __all_characters__except(spaceial_characters) | escape
@@ -26,6 +26,7 @@ namespace Yagiey.Lib.RegularExpressions
 	/// backslash = '\'
 	/// vertical_bar = '|'
 	/// asterisk = '*'
+	/// plus = '+'
 	/// lparen = '('
 	/// rparen = ')'
 	/// question = '?'
@@ -52,7 +53,7 @@ namespace Yagiey.Lib.RegularExpressions
 			NFATransitionMap transitionMap = new Dictionary<int, IDictionary<IInput, IEnumerable<int>>>();
 			IEnumerator<int> itorID = new SequenceNumberEnumerator(0);
 
-			StartAndEnd result = GetExpression(transitionMap, itorToken, itorID);
+			SubNFA result = GetExpression(transitionMap, itorToken, itorID);
 
 			int startNode = result.Item1;
 			IEnumerable<int> acceptingNodeSet = new int[] { result.Item2 };
@@ -68,13 +69,19 @@ namespace Yagiey.Lib.RegularExpressions
 
 		#region parsing
 
-		private static StartAndEnd GetExpression(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
+		private static SubNFA GetExpression(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			var lv2 = GetLevel2(transitionMap, itorToken, itorID);
 
 			if (itorToken.Current.CanNextBeRegardedAsRestOfSelection())
 			{
 				List<Tuple<int, Input, int[]>> t = new();
+
+				NFATransitionMap thisNFATrans = new Dictionary<int, IDictionary<IInput, IEnumerable<int>>>();
+				List<NFATransitionMap> subs = new()
+				{
+					lv2.Item3
+				};
 
 				itorID.MoveNext();
 				int start = itorID.Current;
@@ -92,6 +99,8 @@ namespace Yagiey.Lib.RegularExpressions
 				do
 				{
 					var lv2New = GetLevel2(transitionMap, itorToken, itorID);
+					subs.Add(lv2New.Item3);
+
 					t.Add(Tuple.Create(start, Input.Empty, new int[] { lv2New.Item1 }));
 					t.Add(Tuple.Create(lv2New.Item2, Input.Empty, new int[] { end }));
 
@@ -106,11 +115,17 @@ namespace Yagiey.Lib.RegularExpressions
 					}
 				} while (true);
 
+				foreach (var sub in subs)
+				{
+					MergeSubNFATransition(sub, thisNFATrans);
+				}
+
 				foreach (var item in t)
 				{
+					NFA.AddTransition(thisNFATrans, item.Item1, item.Item2, item.Item3);
 					NFA.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
 				}
-				return new StartAndEnd(start, end);
+				return new SubNFA(start, end, thisNFATrans);
 			}
 			else
 			{
@@ -118,13 +133,18 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 		}
 
-		private static StartAndEnd GetLevel2(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
+		private static SubNFA GetLevel2(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			var lv1 = GetLevel1(transitionMap, itorToken, itorID);
 
 			if (itorToken.Current.CanNextBeRegardedAsRestOfConcatenation())
 			{
 				List<Tuple<int, Input, int[]>> t = new();
+				NFATransitionMap thisNFATrans = new Dictionary<int, IDictionary<IInput, IEnumerable<int>>>();
+				List<NFATransitionMap> subs = new()
+				{
+					lv1.Item3
+				};
 
 				itorID.MoveNext();
 				int start = itorID.Current;
@@ -136,6 +156,8 @@ namespace Yagiey.Lib.RegularExpressions
 				do
 				{
 					var lv1New = GetLevel1(transitionMap, itorToken, itorID);
+					subs.Add(lv1New.Item3);
+
 					t.Add(Tuple.Create(prevEnd, Input.Empty, new int[] { lv1New.Item1 }));
 					prevEnd = lv1New.Item2;
 
@@ -147,11 +169,17 @@ namespace Yagiey.Lib.RegularExpressions
 
 				t.Add(Tuple.Create(prevEnd, Input.Empty, new int[] { end }));
 
+				foreach (var sub in subs)
+				{
+					MergeSubNFATransition(sub, thisNFATrans);
+				}
+
 				foreach (var item in t)
 				{
+					NFA.AddTransition(thisNFATrans, item.Item1, item.Item2, item.Item3);
 					NFA.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
 				}
-				return new StartAndEnd(start, end);
+				return new SubNFA(start, end, thisNFATrans);
 			}
 			else
 			{
@@ -159,13 +187,15 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 		}
 
-		private static StartAndEnd GetLevel1(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
+		private static SubNFA GetLevel1(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			var lv0 = GetLevel0(transitionMap, itorToken, itorID);
 
 			char? next = itorToken.Current.Item2[0];
-			if (next.HasValue && (next == Constants.Asterisk || next == Constants.Question))
+			if (next.HasValue && (next == Constants.Asterisk || next == Constants.Plus || next == Constants.Question))
 			{
+				NFATransitionMap thisNFATrans = new Dictionary<int, IDictionary<IInput, IEnumerable<int>>>();
+
 				if (!itorToken.MoveNext())
 				{
 					throw new Exception();
@@ -173,7 +203,27 @@ namespace Yagiey.Lib.RegularExpressions
 
 				int start;
 				int end;
-				if (next == Constants.Asterisk)
+				if (next == Constants.Question)
+				{
+					itorID.MoveNext();
+					start = itorID.Current;
+					itorID.MoveNext();
+					end = itorID.Current;
+
+					List<Tuple<int, Input, int[]>> t = new() {
+						Tuple.Create(start, Input.Empty, new int[] { lv0.Item1 }),
+						Tuple.Create(lv0.Item2, Input.Empty, new int[] { end }),
+						Tuple.Create(start, Input.Empty, new int[] { end }),
+					};
+
+					MergeSubNFATransition(lv0.Item3, thisNFATrans);
+					foreach (var item in t)
+					{
+						NFA.AddTransition(thisNFATrans, item.Item1, item.Item2, item.Item3);
+						NFA.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
+					}
+				}
+				else if (next == Constants.Asterisk)
 				{
 					itorID.MoveNext();
 					start = itorID.Current;
@@ -184,33 +234,57 @@ namespace Yagiey.Lib.RegularExpressions
 					itorID.MoveNext();
 					end = itorID.Current;
 
-					var t1 = Tuple.Create(start, Input.Empty, new int[] { node1, end });
-					var t2 = Tuple.Create(node1, Input.Empty, new int[] { lv0.Item1 });
-					var t3 = Tuple.Create(lv0.Item2, Input.Empty, new int[] { node2 });
-					var t4 = Tuple.Create(node2, Input.Empty, new int[] { node1, end });
+					List<Tuple<int, Input, int[]>> t = new() {
+						Tuple.Create(start, Input.Empty, new int[] { node1, end }),
+						Tuple.Create(node1, Input.Empty, new int[] { lv0.Item1 }),
+						Tuple.Create(lv0.Item2, Input.Empty, new int[] { node2 }),
+						Tuple.Create(node2, Input.Empty, new int[] { node1, end }),
+					};
 
-					NFA.AddTransition(transitionMap, t1.Item1, t1.Item2, t1.Item3);
-					NFA.AddTransition(transitionMap, t2.Item1, t2.Item2, t2.Item3);
-					NFA.AddTransition(transitionMap, t3.Item1, t3.Item2, t3.Item3);
-					NFA.AddTransition(transitionMap, t4.Item1, t4.Item2, t4.Item3);
+					MergeSubNFATransition(lv0.Item3, thisNFATrans);
+					foreach (var item in t)
+					{
+						NFA.AddTransition(thisNFATrans, item.Item1, item.Item2, item.Item3);
+						NFA.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
+					}
 				}
-				else
+				else// if (next == Constants.Plus)
 				{
+					var sub = RenumberSubNFATransition(lv0, itorID);
+
 					itorID.MoveNext();
 					start = itorID.Current;
 					itorID.MoveNext();
+					int node1 = itorID.Current;
+					itorID.MoveNext();
+					int node2 = itorID.Current;
+					itorID.MoveNext();
+					int node3 = itorID.Current;
+					itorID.MoveNext();
 					end = itorID.Current;
 
-					var t1 = Tuple.Create(start, Input.Empty, new int[] { lv0.Item1 });
-					var t2 = Tuple.Create(lv0.Item2, Input.Empty, new int[] { end });
-					var t3 = Tuple.Create(start, Input.Empty, new int[] { end });
+					List<Tuple<int, Input, int[]>> t = new() {
+						Tuple.Create(start, Input.Empty, new int[] { lv0.Item1 }),
+						Tuple.Create(lv0.Item2, Input.Empty, new int[] { node1 }),
+						Tuple.Create(node1, Input.Empty, new int[] { node2 }),
+						Tuple.Create(node1, Input.Empty, new int[] { end }),
+						Tuple.Create(node2, Input.Empty, new int[] { sub.Item1 }),
+						Tuple.Create(sub.Item2, Input.Empty, new int[] { node3 }),
+						Tuple.Create(node3, Input.Empty, new int[] { node2 }),
+						Tuple.Create(node3, Input.Empty, new int[] { end }),
+					};
 
-					NFA.AddTransition(transitionMap, t1.Item1, t1.Item2, t1.Item3);
-					NFA.AddTransition(transitionMap, t2.Item1, t2.Item2, t2.Item3);
-					NFA.AddTransition(transitionMap, t3.Item1, t3.Item2, t3.Item3);
+					MergeSubNFATransition(lv0.Item3, thisNFATrans);
+					MergeSubNFATransition(sub.Item3, thisNFATrans);
+					MergeSubNFATransition(sub.Item3, transitionMap);
+					foreach (var item in t)
+					{
+						NFA.AddTransition(thisNFATrans, item.Item1, item.Item2, item.Item3);
+						NFA.AddTransition(transitionMap, item.Item1, item.Item2, item.Item3);
+					}
 				}
 
-				return new StartAndEnd(start, end);
+				return new SubNFA(start, end, thisNFATrans);
 			}
 			else
 			{
@@ -218,7 +292,7 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 		}
 
-		private static StartAndEnd GetLevel0(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
+		private static SubNFA GetLevel0(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
 			if (!itorToken.MoveNext())
 			{
@@ -265,6 +339,8 @@ namespace Yagiey.Lib.RegularExpressions
 				itorID.MoveNext();
 				int end = itorID.Current;
 
+				NFATransitionMap thisNFATrans = new Dictionary<int, IDictionary<IInput, IEnumerable<int>>>();
+
 				if (current == Constants.Backslash && next.HasValue && Constants.EscapedCharacters.Any(_ => _ == next.Value))
 				{
 					itorToken.MoveNext();
@@ -299,7 +375,9 @@ namespace Yagiey.Lib.RegularExpressions
 							.Concat(Enumerable.Range(0, 10).Select(n => Convert.ToChar('0' + n)))
 							.Append(Constants.Underline);
 					}
+
 					AddTransitions(transitionMap, start, characters, new int[] { end });
+					AddTransitions(thisNFATrans, start, characters, new int[] { end });
 				}
 				else
 				{
@@ -323,14 +401,17 @@ namespace Yagiey.Lib.RegularExpressions
 						input = new Input(current);
 					}
 					NFA.AddTransition(transitionMap, start, input, new int[] { end });
+					NFA.AddTransition(thisNFATrans, start, input, new int[] { end });
 				}
 
-				return new StartAndEnd(start, end);
+				return new SubNFA(start, end, thisNFATrans);
 			}
 		}
 
-		private static StartAndEnd GetCharacterClass(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
+		private static SubNFA GetCharacterClass(NFATransitionMap transitionMap, IEnumerator<Tuple<char, char?[]>> itorToken, IEnumerator<int> itorID)
 		{
+			NFATransitionMap thisNFATrans = new Dictionary<int, IDictionary<IInput, IEnumerable<int>>>();
+
 			itorID.MoveNext();
 			int start = itorID.Current;
 			itorID.MoveNext();
@@ -436,8 +517,9 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 
 			IInput input = new InputWithPredicate(predicate);
+			NFA.AddTransition(thisNFATrans, start, input, new int[] { end });
 			NFA.AddTransition(transitionMap, start, input, new int[] { end });
-			return new StartAndEnd(start, end);
+			return new SubNFA(start, end, thisNFATrans);
 		}
 
 		private static Tuple<bool, char> GetNextCharacter(IEnumerator<Tuple<char, char?[]>> itorToken)
@@ -461,6 +543,60 @@ namespace Yagiey.Lib.RegularExpressions
 				crnt = itorToken.Current.Item1;
 			}
 			return Tuple.Create(isEscape, crnt);
+		}
+
+		private static SubNFA RenumberSubNFATransition(SubNFA subNFA, IEnumerator<int> itorID)
+		{
+			HashSet<int> oldNodes = new();
+			foreach (var pair1 in subNFA.Item3)
+			{
+				oldNodes.Add(pair1.Key);
+				foreach (var pair2 in pair1.Value)
+				{
+					foreach (var dest in pair2.Value)
+					{
+						oldNodes.Add(dest);
+					}
+				}
+			}
+
+			IDictionary<int, int> mapOld2New = new Dictionary<int, int>();
+			foreach (var oldNode in oldNodes)
+			{
+				itorID.MoveNext();
+				int newNode = itorID.Current;
+				mapOld2New.Add(oldNode, newNode);
+			}
+
+			NFATransitionMap result = new Dictionary<int, IDictionary<IInput, IEnumerable<int>>>();
+			foreach (var pair1 in subNFA.Item3)
+			{
+				IDictionary<IInput, IEnumerable<int>> map2 = new Dictionary<IInput, IEnumerable<int>>();
+				foreach (var pair2 in pair1.Value)
+				{
+					map2.Add(
+						pair2.Key,
+						pair2.Value.Select(it => mapOld2New[it]).OrderBy(it => it)
+					);
+				}
+				result.Add(mapOld2New[pair1.Key], map2);
+			}
+
+			return new SubNFA(mapOld2New[subNFA.Item1], mapOld2New[subNFA.Item2], result);
+		}
+
+		private static void MergeSubNFATransition(NFATransitionMap mapFrom, NFATransitionMap mapDest)
+		{
+			foreach (var pair1 in mapFrom)
+			{
+				int from = pair1.Key;
+				foreach (var pair2 in pair1.Value)
+				{
+					IInput input = pair2.Key;
+					IEnumerable<int> dest = pair2.Value;
+					NFA.AddTransition(mapDest, from, input, dest);
+				}
+			}
 		}
 
 		public static NFATransitionMap AddTransitions(NFATransitionMap transitionMap, int start, IEnumerable<char> characters, IEnumerable<int> ends)

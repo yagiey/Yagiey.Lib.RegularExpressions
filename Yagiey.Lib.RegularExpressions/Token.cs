@@ -17,6 +17,7 @@ namespace Yagiey.Lib.RegularExpressions
 					next != Constants.VerticalBar
 					&& next.Value != Constants.Question
 					&& next.Value != Constants.Asterisk
+					&& next.Value != Constants.Plus
 					&& next.Value != Constants.Hat
 					&& next.Value != Constants.RParen
 					&& next.Value != Constants.RBracket
