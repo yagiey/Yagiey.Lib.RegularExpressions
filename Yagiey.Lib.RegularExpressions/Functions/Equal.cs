@@ -102,7 +102,7 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 
 		public override string ToString()
 		{
-			return "(Equal " + Value + ")";
+			return String.Format("(Equal (ch {0}))", Convert.ToInt32(Value));
 		}
 	}
 }

@@ -335,7 +335,7 @@ namespace Yagiey.Lib.RegularExpressions
 					{
 						id = string.Join(
 							"|",
-							trans.OrderBy(_ => _.Key).Select(_ => string.Format("{0}:{1}", _.Key is Input ? string.Format("ch({0})", (int)(_.Key as Input)!.Character) : _.Key.ToString(), _.Value))
+							trans.OrderBy(_ => _.Key).Select(_ => string.Format("{0}:{1}", _.Key is Input ? string.Format("(ch {0})", (int)(_.Key as Input)!.Character) : _.Key.ToString(), _.Value))
 						);
 					}
 
