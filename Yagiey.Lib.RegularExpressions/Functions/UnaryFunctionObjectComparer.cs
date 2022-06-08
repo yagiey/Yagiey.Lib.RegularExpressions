@@ -16,34 +16,6 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 			{
 				return 1;
 			}
-			else if (x is GreaterThan<TArg>)
-			{
-				return 2;
-			}
-			else if (x is GreaterThanOrEqual<TArg>)
-			{
-				return 3;
-			}
-			else if (x is LessThan<TArg>)
-			{
-				return 4;
-			}
-			else if (x is LessThanOrEqual<TArg>)
-			{
-				return 5;
-			}
-			else if (x is GTLT<TArg>)
-			{
-				return 6;
-			}
-			else if (x is GTLE<TArg>)
-			{
-				return 7;
-			}
-			else if (x is GELT<TArg>)
-			{
-				return 8;
-			}
 			else if (x is GELE<TArg>)
 			{
 				return 9;
@@ -90,48 +62,6 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 			{
 				Equal<TArg> x_ = (Equal<TArg>)x;
 				Equal<TArg> y_ = (Equal<TArg>)y;
-				return x_.CompareTo(y_);
-			}
-			else if (x is GreaterThan<TArg>)
-			{
-				GreaterThan<TArg> x_ = (GreaterThan<TArg>)x;
-				GreaterThan<TArg> y_ = (GreaterThan<TArg>)y;
-				return x_.CompareTo(y_);
-			}
-			else if (x is GreaterThanOrEqual<TArg>)
-			{
-				GreaterThanOrEqual<TArg> x_ = (GreaterThanOrEqual<TArg>)x;
-				GreaterThanOrEqual<TArg> y_ = (GreaterThanOrEqual<TArg>)y;
-				return x_.CompareTo(y_);
-			}
-			else if (x is LessThan<TArg>)
-			{
-				LessThan<TArg> x_ = (LessThan<TArg>)x;
-				LessThan<TArg> y_ = (LessThan<TArg>)y;
-				return x_.CompareTo(y_);
-			}
-			else if (x is LessThanOrEqual<TArg>)
-			{
-				LessThanOrEqual<TArg> x_ = (LessThanOrEqual<TArg>)x;
-				LessThanOrEqual<TArg> y_ = (LessThanOrEqual<TArg>)y;
-				return x_.CompareTo(y_);
-			}
-			else if (x is GTLT<TArg>)
-			{
-				GTLT<TArg> x_ = (GTLT<TArg>)x;
-				GTLT<TArg> y_ = (GTLT<TArg>)y;
-				return x_.CompareTo(y_);
-			}
-			else if (x is GTLE<TArg>)
-			{
-				GTLE<TArg> x_ = (GTLE<TArg>)x;
-				GTLE<TArg> y_ = (GTLE<TArg>)y;
-				return x_.CompareTo(y_);
-			}
-			else if (x is GELT<TArg>)
-			{
-				GELT<TArg> x_ = (GELT<TArg>)x;
-				GELT<TArg> y_ = (GELT<TArg>)y;
 				return x_.CompareTo(y_);
 			}
 			else if (x is GELE<TArg>)

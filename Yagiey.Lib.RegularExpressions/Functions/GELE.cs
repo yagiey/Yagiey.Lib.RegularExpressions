@@ -1,23 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions.Functions
 {
 	internal class GELE<T> : IRange<T>, IComparable<GELE<T>>, IEquatable<GELE<T>>
 		where T : IComparable<T>, IEquatable<T>
 	{
-		private readonly Tuple<GreaterThanOrEqual<T>, LessThanOrEqual<T>> _and;
+		private readonly T _lowerLimit;
+		private readonly T _upperLimit;
 
 		public GELE(T lowerLimit, T upperLimit)
 		{
 			if (lowerLimit.CompareTo(upperLimit) > 0)
 			{
-				T tmp = lowerLimit;
-				lowerLimit = upperLimit;
-				upperLimit = tmp;
+				(upperLimit, lowerLimit) = (lowerLimit, upperLimit);
 			}
-			_and = Tuple.Create(new GreaterThanOrEqual<T>(lowerLimit), new LessThanOrEqual<T>(upperLimit));
+			_lowerLimit = lowerLimit;
+			_upperLimit = upperLimit;
 		}
 
 		public int CompareTo(GELE<T>? other)
@@ -108,14 +107,16 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 
 		public bool Invoke(T x)
 		{
-			return _and.Item1.Invoke(x) && _and.Item2.Invoke(x);
+			return
+				(_lowerLimit.Equals(x) || _lowerLimit.CompareTo(x) <= 0)
+				&& (x.Equals(_upperLimit) || x.CompareTo(_upperLimit) <= 0);
 		}
 
 		public T? LowerLimit
 		{
 			get
 			{
-				return _and.Item1.Value;
+				return _lowerLimit;
 			}
 		}
 
@@ -123,7 +124,7 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 		{
 			get
 			{
-				return _and.Item2.Value;
+				return _upperLimit;
 			}
 		}
 
@@ -139,7 +140,7 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 
 		public override string ToString()
 		{
-			return "(GELE " + _and.Item1.Value + " " + _and.Item2.Value + ")";
+			return "(GELE " + _lowerLimit + " " + _upperLimit + ")";
 		}
 	}
 }
