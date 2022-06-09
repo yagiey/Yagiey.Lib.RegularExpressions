@@ -104,5 +104,10 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 		{
 			return String.Format("(Equal (ch {0}))", Convert.ToInt32(Value));
 		}
+
+		public string ToRegularExpression()
+		{
+			return Value.ToString()!;
+		}
 	}
 }

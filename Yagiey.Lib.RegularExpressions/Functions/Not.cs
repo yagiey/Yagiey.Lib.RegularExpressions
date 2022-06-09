@@ -101,5 +101,10 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 		{
 			return "(NOT " + _predicate + ")";
 		}
+
+		public string ToRegularExpression()
+		{
+			return string.Format("^{0}", _predicate.ToRegularExpression());
+		}
 	}
 }

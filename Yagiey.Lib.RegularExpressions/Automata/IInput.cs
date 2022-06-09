@@ -11,5 +11,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		bool IsPredicate { get; }
 
 		bool Match(char ch);
+
+		string ToRegularExpression();
 	}
 }

@@ -142,5 +142,10 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 		{
 			return "(GELE " + _lowerLimit + " " + _upperLimit + ")";
 		}
+
+		public string ToRegularExpression()
+		{
+			return string.Format("{0}-{1}", _lowerLimit, _upperLimit);
+		}
 	}
 }

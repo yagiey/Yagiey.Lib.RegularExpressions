@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
@@ -10,6 +11,9 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 	{
 		private int _state;
 		private bool _isError;
+
+		const string Epsilon = @"\e";
+		const string Zero = @"\z";
 
 		public DeterministicFiniteAutomaton(int startNode, IEnumerable<int> acceptingNodeSet, DFATransitionMap transitionMap, bool ignoreCase)
 		{
@@ -80,15 +84,332 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 
 		public override string ToString()
 		{
-			List<string> lines = new();
-			lines.Add(string.Format("start: {0}", StartNode));
-			lines.Add(string.Format("accepting: [{0}]", string.Join(",", AcceptingNodeSet)));
+			List<string> lines = new()
+			{
+				string.Format("start: {0}", StartNode),
+				string.Format("accepting: [{0}]", string.Join(",", AcceptingNodeSet))
+			};
+
 			foreach (var pair in TransitionMap.OrderBy(_ => _.Key))
 			{
 				var strMap = string.Join(",", pair.Value.OrderBy(_ => _.Key).Select(pair2 => string.Format("{0}->{1}", pair2.Key is Input ? string.Format("(ch {0})", (int)(pair2.Key as Input)!.Character) : pair2.Key.ToString(), pair2.Value)));
 				lines.Add(string.Format("{0}:{1}", pair.Key, strMap));
 			}
 			return string.Join("\r\n", lines);
+		}
+
+		public string ToRegularExpression()
+		{
+			var allNode = GetAllNodes();
+			var gnfa = ToGNFA();
+
+			int startNode = gnfa.Item1;
+			int acceptingNode = gnfa.Item2;
+			var gnfaTransMap = gnfa.Item3;
+
+			List<int> done = new();
+			foreach (var node in allNode)
+			{
+				done.Add(node);
+
+				// each node
+				var remain = allNode.Except(done);
+				foreach (var pair in DirectProductEnumerator.DP(remain, remain))
+				{
+					UpdateEdgeLabel(pair.Item1, node, pair.Item2, gnfaTransMap);
+				}
+
+				// start -> node
+				foreach (var to in remain)
+				{
+					UpdateEdgeLabel(startNode, node, to, gnfaTransMap);
+				}
+
+				// node -> accepting
+				foreach (var from in remain)
+				{
+					UpdateEdgeLabel(from, node, acceptingNode, gnfaTransMap);
+				}
+
+				// start -> accepting
+				UpdateEdgeLabel(startNode, node, acceptingNode, gnfaTransMap);
+
+				gnfaTransMap.Remove(node);
+				foreach (var item in gnfaTransMap)
+				{
+					item.Value.RemoveAll(it => it.Head == node);
+				}
+			}
+
+			string result = gnfaTransMap[startNode].First().Tail;
+			return result;
+		}
+
+		private Tuple<int, int, IDictionary<int, List<Pair<int, string>>>> ToGNFA()
+		{
+			var e =
+				TransitionMap
+					.Select(it1 =>
+						KeyValuePair.Create(
+							it1.Key,
+							it1.Value.Select(it2 =>
+								new Pair<int, string>
+								(
+									it2.Value,
+									it2.Key.ToRegularExpression()
+								)
+							).ToList()
+						)
+					);
+			IDictionary<int, List<Pair<int, string>>> newMap =
+				new Dictionary<int, List<Pair<int, string>>>(e);
+
+			// step 1
+			IEnumerable<int> allNode = GetAllNodes();
+			int lastNode = allNode.Max();
+			int newStart = lastNode + 1;
+			int newAccepting = newStart + 1;
+
+			// step 2: new start node -> each node
+			newMap.Add(
+				newStart,
+				allNode.Select(it => new Pair<int, string>(it, it == StartNode ? Epsilon : Zero)).ToList()
+			);
+
+			// step 3: each node -> new accepting state
+			foreach (var node in allNode)
+			{
+				if (newMap.TryGetValue(node, out List<Pair<int, string>>? tmp) && tmp != null)
+				{
+					string label = AcceptingNodeSet.Contains(node) ? Epsilon : Zero;
+					tmp.Add(new Pair<int, string>(newAccepting, label));
+				}
+				else
+				{
+					newMap.Add(
+						node,
+						new List<Pair<int, string>> { new Pair<int, string>(newAccepting, Zero) }
+					);
+				}
+			}
+			newMap[newStart].Add(new Pair<int, string>(newAccepting, Zero));
+
+			// step 4: each node -> each node
+			foreach (var node1 in allNode)
+			{
+				foreach (var node2 in allNode)
+				{
+					// node1 -> node2
+					if (newMap.TryGetValue(node1, out List<Pair<int, string>>? lis)
+						&& lis != null)
+					{
+						var tmp = lis.Where(it => it.Head == node2);
+						if (tmp.Any())
+						{
+							var tmp2 = tmp.ToList();
+							lis.RemoveAll(it => it.Head == node2);
+							string label = string.Join("|", tmp2.Select(it => it.Tail));
+							lis.Add(new Pair<int, string>(node2, label));
+						}
+						else
+						{
+							lis.Add(new Pair<int, string>(node2, Zero));
+						}
+					}
+					else
+					{
+						newMap.Add(
+							node1,
+							Enumerable.Repeat(new Pair<int, string>(node2, Zero), 1).ToList()
+						);
+					}
+				}
+			}
+			return Tuple.Create(newStart, newAccepting, newMap);
+		}
+
+		private static void UpdateEdgeLabel(int from, int rip, int to, IDictionary<int, List<Pair<int, string>>> transitionMap)
+		{
+			var r1 = transitionMap[from].First(it => it.Head == rip);
+			var r2 = transitionMap[rip].First(it => it.Head == rip);
+			var r3 = transitionMap[rip].First(it => it.Head == to);
+			var r4 = transitionMap[from].First(it => it.Head == to);
+
+			string result;
+			if (r1.Tail == Zero || r2.Tail == Zero || r3.Tail == Zero)
+			{
+				result = r4.Tail;
+			}
+			else
+			{
+				string strR1;
+				if (r1.Tail == Epsilon)
+				{
+					strR1 = string.Empty;
+				}
+				else
+				{
+					string tmp1 = SimplifyExpression(r1.Tail);
+					strR1 = tmp1.Contains('|') ? string.Format("({0})", r1.Tail) : r1.Tail;
+				}
+
+				string tmp2 = SimplifyExpression(r2.Tail);
+				string strR2 = 1 < tmp2.Length ? string.Format("({0})", r2.Tail) : r2.Tail;
+
+				string strR3;
+				if (r3.Tail == Epsilon)
+				{
+					strR3 = string.Empty;
+				}
+				else
+				{
+					string tmp3 = SimplifyExpression(r3.Tail);
+					strR3 = tmp3.Contains('|') ? string.Format("({0})", r3.Tail) : r3.Tail;
+				}
+
+
+				if (r4.Tail == Epsilon)
+				{
+					result = string.Format("({0}{1}*{2})?", strR1, strR2, strR3);
+				}
+				else
+				{
+					string strR4;
+					if (r4.Tail == Zero)
+					{
+						strR4 = string.Empty;
+					}
+					else
+					{
+						string tmp4 = SimplifyExpression(r4.Tail);
+						strR4 = tmp4.Contains('|') ? string.Format("|({0})", r4.Tail) : string.Format("|{0}", r4.Tail);
+					}
+
+					result = string.Format("{0}{1}*{2}{3}", strR1, strR2, strR3, strR4);
+				}
+			}
+
+			r4.Tail = result;
+		}
+
+		private static IEnumerable<Pair<int, int>> ParenIndexices(string expr, IEnumerable<Tuple<char, char, bool>> parenInfos)
+		{
+			IList<Tuple<char, bool>> opening =
+				parenInfos
+				.Select(it => Tuple.Create(it.Item1, it.Item3))
+				.ToList();
+
+			IList<Tuple<char, bool>> closing =
+				parenInfos
+				.Select(it => Tuple.Create(it.Item2, it.Item3))
+				.ToList();
+
+			Stack<Tuple<int, int>> stk = new();
+			bool escape = false;
+			for (int i = 0; i < expr.Length; i++)
+			{
+				char ch = expr[i];
+				if (ch == Constants.Backslash)
+				{
+					escape = true;
+					continue;
+				}
+
+				if (!escape)
+				{
+					bool canSkip = stk.Any() && opening[stk.Peek().Item2].Item2;
+					if (opening.Any(it => it.Item1 == ch))
+					{
+						////////////
+						// opening
+						////////////
+
+						int parenType = opening.FindIndex(it => it.Item1 == ch);
+
+						if (!canSkip)
+						{
+							Tuple<int, int> posParen = Tuple.Create(i, parenType);
+							stk.Push(posParen);
+						}
+					}
+					else if (closing.Any(it => it.Item1 == ch))
+					{
+						////////////
+						// closing
+						////////////
+
+						if (!stk.Any())
+						{
+							const string ErrMsg = "too many closing parentheses";
+							throw new Exception(ErrMsg);
+						}
+
+						int parenType = closing.FindIndex(it => it.Item1 == ch);
+
+						Tuple<int, int> peek = stk.Peek();
+						if (!canSkip || canSkip && parenType == peek.Item2)
+						{
+							if (peek.Item2 != parenType)
+							{
+								const string ErrMsg = "closing with different parentheses";
+								throw new Exception(ErrMsg);
+							}
+							stk.Pop();
+							yield return new Pair<int, int>(peek.Item1, i);
+						}
+					}
+				}
+
+				escape = false;
+			}
+
+			if (stk.Count > 0)
+			{
+				const string ErrMsg = "unclosed parentheses";
+				throw new Exception(ErrMsg);
+			}
+		}
+
+		/// <summary>
+		/// Replace outermost expressions which enclosed in parentheses or brackets with a character
+		/// </summary>
+		/// <param name="expr">regular expression</param>
+		/// <returns>replaced string</returns>
+		private static string SimplifyExpression(string expr)
+		{
+			const char Replace = 'A';
+			var parens = new[] { Tuple.Create('(', ')', false), Tuple.Create('[', ']', true) };
+			var pos = ParenIndexices(expr, parens).OrderBy(it => it.Head);
+			StringBuilder sb = new();
+
+			int prevEnd = -1;
+			bool isFirst = true;
+			foreach (var startAndEnd in pos)
+			{
+				int start = startAndEnd.Head;
+				int end = startAndEnd.Tail;
+
+				if (prevEnd <= end)
+				{
+					string sub;
+					if (isFirst)
+					{
+						sub = expr.Substring(prevEnd + 1, start);
+					}
+					else
+					{
+						sub = expr.Substring(prevEnd + 1, start - prevEnd - 1);
+					}
+					sb.Append(sub);
+					isFirst = false;
+
+					int len = end - start + 1;
+					sb.Append(Replace);
+					prevEnd = end;
+				}
+			}
+			sb.Append(expr.Substring(prevEnd + 1));
+			return sb.ToString();
 		}
 
 		#region IDeterministicFiniteAutomaton

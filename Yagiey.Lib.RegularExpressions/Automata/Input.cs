@@ -180,5 +180,47 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 				return Character.ToString();
 			}
 		}
+
+		public string ToRegularExpression()
+		{
+			if (_inputType == InputType.Empty)
+			{
+				return @"\e";
+			}
+			else if (Character == Constants.Backslash
+				|| Character == Constants.Dot
+				|| Character == Constants.LParen
+				|| Character == Constants.RParen
+				|| Character == Constants.VerticalBar
+				|| Character == Constants.Asterisk
+				|| Character == Constants.Question
+				|| Character == Constants.Hat
+				|| Character == Constants.LBracket
+				|| Character == Constants.RBracket
+				|| Character == Constants.LBrace
+				|| Character == Constants.RBrace
+				|| Character == Constants.Plus
+				|| Character == Constants.Minus
+				)
+			{
+				return string.Format("{0}{1}", Constants.Backslash, Character);
+			}
+			else if (Character == Constants.Tab)
+			{
+				return string.Format("{0}{1}", Constants.Backslash, Constants.EscapedTab);
+			}
+			else if (Character == Constants.CarriageReturn)
+			{
+				return string.Format("{0}{1}", Constants.Backslash, Constants.EscapedCr);
+			}
+			else if (Character == Constants.LineFeed)
+			{
+				return string.Format("{0}{1}", Constants.Backslash, Constants.EscapedLf);
+			}
+			else
+			{
+				return Character.ToString();
+			}
+		}
 	}
 }

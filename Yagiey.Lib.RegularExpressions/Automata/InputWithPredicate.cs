@@ -127,5 +127,10 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		{
 			return _predicate.ToString()!;
 		}
+
+		public string ToRegularExpression()
+		{
+			return _predicate.ToRegularExpression();
+		}
 	}
 }

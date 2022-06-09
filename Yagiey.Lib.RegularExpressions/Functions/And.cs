@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace Yagiey.Lib.RegularExpressions.Functions
 {
@@ -107,6 +108,20 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 		public override string ToString()
 		{
 			return "(And " + string.Join(" ", _predicates.Select(p => p.ToString())) + ")";
+		}
+
+		public string ToRegularExpression()
+		{
+			StringBuilder sb = new();
+			foreach (var item in _predicates)
+			{
+				if (item.GetType() != typeof(Not<T>))
+				{
+					throw new Exception();
+				}
+				sb.Append(item.ToRegularExpression().TrimStart('^'));
+			}
+			return string.Format("[^{0}]", sb.ToString());
 		}
 	}
 }
