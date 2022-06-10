@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Yagiey.Lib.RegularExpressions.Extensions.Generic;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {

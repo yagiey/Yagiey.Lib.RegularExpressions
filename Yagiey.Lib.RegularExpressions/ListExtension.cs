@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Yagiey.Lib.RegularExpressions
+namespace Yagiey.Lib.RegularExpressions.Extensions.Generic
 {
 	internal static class ListExtension
 	{
