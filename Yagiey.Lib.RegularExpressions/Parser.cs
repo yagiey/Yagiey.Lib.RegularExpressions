@@ -501,19 +501,33 @@ namespace Yagiey.Lib.RegularExpressions
 			IUnaryFunctionObject<bool, char> predicate;
 			if (isNegative)
 			{
-				predicate = new And<char>(
+				var predicates =
 					Enumerable.Empty<IUnaryFunctionObject<bool, char>>()
 						.Concat(characters.Select(c => new Not<char>(new Equal<char>(c))))
-						.Concat(ranges.Select(r => new Not<char>(new GELE<char>(r.Item1, r.Item2))))
-					);
+						.Concat(ranges.Select(r => new Not<char>(new GELE<char>(r.Item1, r.Item2))));
+				if (1 == characters.Count + ranges.Count)
+				{
+					predicate = predicates.First();
+				}
+				else
+				{
+					predicate = new And<char>(predicates);
+				}
 			}
 			else
 			{
-				predicate = new Or<char>(
+				var predicates =
 					Enumerable.Empty<IUnaryFunctionObject<bool, char>>()
 						.Concat(characters.Select(c => new Equal<char>(c)))
-						.Concat(ranges.Select(r => new GELE<char>(r.Item1, r.Item2)))
-					);
+						.Concat(ranges.Select(r => new GELE<char>(r.Item1, r.Item2)));
+				if (1 == characters.Count + ranges.Count)
+				{
+					predicate = predicates.First();
+				}
+				else
+				{
+					predicate = new Or<char>(predicates);
+				}
 			}
 
 			IInput input = new InputWithPredicate(predicate);
