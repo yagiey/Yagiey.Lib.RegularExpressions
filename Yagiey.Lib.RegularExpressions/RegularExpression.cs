@@ -242,20 +242,7 @@ namespace Yagiey.Lib.RegularExpressions
 
 		private static DFA MinimizeDFA(DFA dfa, bool ignoreCase)
 		{
-			bool isAcc(int node) => dfa.AcceptingNodeSet.Any(_ => _ == node);
-			IDictionary<int, HashSet<int>> group2Nodes = new Dictionary<int, HashSet<int>>();
-			foreach (int node in dfa.GetAllNodes())
-			{
-				int group = isAcc(node) ? 1 : 0;
-				if (group2Nodes.ContainsKey(group))
-				{
-					group2Nodes[group].Add(node);
-				}
-				else
-				{
-					group2Nodes.Add(group, new HashSet<int> { node });
-				}
-			}
+			IDictionary<int, HashSet<int>> group2Nodes = Create1stGenerationGroups(dfa);
 
 			IEqualityComparer<IEnumerable<int>> eqComp = new EnumerableEqualityComparer<int>();
 			IDictionary<int, int> node2Group;
@@ -277,6 +264,7 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 
 			// make new DFA
+			bool isAcc(int node) => dfa.AcceptingNodeSet.Any(_ => _ == node);
 			int startNode = -1;
 			IEnumerable<int> acceptingNodeSet = Enumerable.Empty<int>();
 			DFATransitionMap transitionMap = new Dictionary<int, IDictionary<IInput, int>>();
@@ -311,6 +299,26 @@ namespace Yagiey.Lib.RegularExpressions
 			}
 
 			return new DFA(startNode, acceptingNodeSet, transitionMap, ignoreCase);
+		}
+
+		private static IDictionary<int, HashSet<int>> Create1stGenerationGroups(DFA dfa)
+		{
+			bool isAcceptable(int node) => dfa.AcceptingNodeSet.Any(_ => _ == node);
+
+			IDictionary<int, HashSet<int>> result = new Dictionary<int, HashSet<int>>();
+			foreach (int node in dfa.GetAllNodes())
+			{
+				int group = isAcceptable(node) ? 1 : 0;
+				if (result.ContainsKey(group))
+				{
+					result[group].Add(node);
+				}
+				else
+				{
+					result.Add(group, new HashSet<int> { node });
+				}
+			}
+			return result;
 		}
 
 		private static Tuple<IDictionary<int, int>, IDictionary<int, HashSet<int>>> MakeGroup(IDictionary<int, HashSet<int>> group2Nodes, DFATransitionMap transitionMap)
