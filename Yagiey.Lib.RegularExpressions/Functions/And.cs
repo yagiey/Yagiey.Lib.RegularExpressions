@@ -119,7 +119,7 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 				{
 					throw new Exception();
 				}
-				sb.Append(item.ToRegularExpression().TrimStart('^'));
+				sb.Append(item.ToRegularExpression().Trim(new char[] { '[', ']' }).TrimStart('^'));
 			}
 			return string.Format("[^{0}]", sb.ToString());
 		}

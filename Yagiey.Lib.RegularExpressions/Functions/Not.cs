@@ -104,7 +104,7 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 
 		public string ToRegularExpression()
 		{
-			return string.Format("^{0}", _predicate.ToRegularExpression());
+			return string.Format("[^{0}]", _predicate.ToRegularExpression());
 		}
 	}
 }

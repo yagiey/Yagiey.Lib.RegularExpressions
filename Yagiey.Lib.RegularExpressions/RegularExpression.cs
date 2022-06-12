@@ -242,13 +242,14 @@ namespace Yagiey.Lib.RegularExpressions
 
 		private static DFA MinimizeDFA(DFA dfa, bool ignoreCase)
 		{
-			IDictionary<int, HashSet<int>> group2Nodes = Create1stGenerationGroups(dfa);
+			var group = Create1stGenerationGroups(dfa);
+			IDictionary<int, int> node2Group = group.Item1;
+			IDictionary<int, HashSet<int>> group2Nodes = group.Item2;
 
 			IEqualityComparer<IEnumerable<int>> eqComp = new EnumerableEqualityComparer<int>();
-			IDictionary<int, int> node2Group;
 			while (true)
 			{
-				var newGroups = MakeGroup(group2Nodes, dfa.TransitionMap);
+				var newGroups = MakeGroup(node2Group, group2Nodes, dfa.TransitionMap);
 				IDictionary<int, HashSet<int>> group2NodesNew = newGroups.Item2;
 
 				bool isEq =
@@ -301,27 +302,30 @@ namespace Yagiey.Lib.RegularExpressions
 			return new DFA(startNode, acceptingNodeSet, transitionMap, ignoreCase);
 		}
 
-		private static IDictionary<int, HashSet<int>> Create1stGenerationGroups(DFA dfa)
+		private static Tuple<IDictionary<int, int>, IDictionary<int, HashSet<int>>> Create1stGenerationGroups(DFA dfa)
 		{
 			bool isAcceptable(int node) => dfa.AcceptingNodeSet.Any(_ => _ == node);
 
-			IDictionary<int, HashSet<int>> result = new Dictionary<int, HashSet<int>>();
+			IDictionary<int, HashSet<int>> group2Nodes = new Dictionary<int, HashSet<int>>();
+			IDictionary<int, int> node2Group = new Dictionary<int, int>();
+
 			foreach (int node in dfa.GetAllNodes())
 			{
 				int group = isAcceptable(node) ? 1 : 0;
-				if (result.ContainsKey(group))
+				if (group2Nodes.ContainsKey(group))
 				{
-					result[group].Add(node);
+					group2Nodes[group].Add(node);
 				}
 				else
 				{
-					result.Add(group, new HashSet<int> { node });
+					group2Nodes.Add(group, new HashSet<int> { node });
 				}
+				node2Group.Add(node, group);
 			}
-			return result;
+			return Tuple.Create(node2Group, group2Nodes);
 		}
 
-		private static Tuple<IDictionary<int, int>, IDictionary<int, HashSet<int>>> MakeGroup(IDictionary<int, HashSet<int>> group2Nodes, DFATransitionMap transitionMap)
+		private static Tuple<IDictionary<int, int>, IDictionary<int, HashSet<int>>> MakeGroup(IDictionary<int, int> node2Group, IDictionary<int, HashSet<int>> group2Nodes, DFATransitionMap transitionMap)
 		{
 			SequenceNumberEnumerator itorID = new(0);
 			IDictionary<int, HashSet<int>> group2NodesNew = new Dictionary<int, HashSet<int>>();
@@ -343,7 +347,7 @@ namespace Yagiey.Lib.RegularExpressions
 					{
 						id = string.Join(
 							"|",
-							trans.OrderBy(_ => _.Key).Select(_ => string.Format("{0}:{1}", _.Key is Input ? string.Format("(ch {0})", (int)(_.Key as Input)!.Character) : _.Key.ToString(), _.Value))
+							trans.OrderBy(_ => _.Key).Select(_ => string.Format("{0}:{1}", _.Key is Input ? string.Format("(ch {0})", (int)(_.Key as Input)!.Character) : _.Key.ToString(), node2Group[_.Value]))
 						);
 					}
 
