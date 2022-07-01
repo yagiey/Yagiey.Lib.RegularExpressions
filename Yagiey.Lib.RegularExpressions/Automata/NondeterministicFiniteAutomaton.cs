@@ -80,6 +80,28 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			return string.Join("\r\n", lines);
 		}
 
+		public static void AddTransition(NFATransitionMap transitionMap, int start, IInput input, int end)
+		{
+			bool found = transitionMap.TryGetValue(start, out IDictionary<IInput, IEnumerable<int>>? dic);
+			if (!found || dic == null)
+			{
+				transitionMap.Add(start, new Dictionary<IInput, IEnumerable<int>> { { input, new int[] { end } } });
+			}
+			else
+			{
+				found = dic.TryGetValue(input, out IEnumerable<int>? e);
+				if (!found || e == null)
+				{
+					dic.Add(input, new int[] { end });
+				}
+				else
+				{
+					dic[input] = e.Append(end);
+				}
+			}
+
+		}
+
 		public static NFATransitionMap AddTransition(NFATransitionMap transitionMap, int node, IInput input, IEnumerable<int> dest)
 		{
 			if (transitionMap.ContainsKey(node))
