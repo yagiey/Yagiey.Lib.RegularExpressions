@@ -31,6 +31,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			get;
 			private set;
 		}
+
 		public IEnumerable<int> GetAllNodes()
 		{
 			HashSet<int> result = new();
