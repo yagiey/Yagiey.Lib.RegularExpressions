@@ -33,19 +33,22 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		}
 		public IEnumerable<int> GetAllNodes()
 		{
-			IEnumerable<int> result = Enumerable.Empty<int>();
+			HashSet<int> result = new();
 			foreach (var pair1 in TransitionMap)
 			{
 				int node = pair1.Key;
-				result = result.Append(node);
+				result.Add(node);
 				IDictionary<IInput, IEnumerable<int>> dic = pair1.Value;
 				foreach (var pair2 in dic)
 				{
 					IEnumerable<int> destination = pair2.Value;
-					result = result.Concat(destination);
+					foreach (int dest in destination)
+					{
+						result.Add(dest);
+					}
 				}
 			}
-			return result.Distinct().OrderBy(_ => _);
+			return result.OrderBy(it => it);
 		}
 
 		public IEnumerable<IInput> GetAllInputs(bool includingEmpty)
