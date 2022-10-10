@@ -26,20 +26,35 @@ namespace Yagiey.Lib.RegularExpressions
 			{
 				return true;
 			}
-			else if (!x.Any())
+			else if (!x.Any() || !y.Any())
 			{
 				return false;
 			}
-			else if (!y.Any())
+
+			var itorX = x.GetEnumerator();
+			var itorY = y.GetEnumerator();
+
+			while (true)
 			{
-				return false;
-			}
-			else
-			{
-				bool result = x.First().Equals(y.First());
+				bool hasNextX = itorX.MoveNext();
+				bool hasNextY = itorY.MoveNext();
+
+				if (!hasNextX && !hasNextY)
+				{
+					return true;
+				}
+				else if (!hasNextX || !hasNextY)
+				{
+					return false;
+				}
+
+				var itemX = itorX.Current;
+				var itemY = itorY.Current;
+
+				bool result = itemX.Equals(itemY);
 				if (result)
 				{
-					return Equals(x.Skip(1), y.Skip(1));
+					continue;
 				}
 				else
 				{
