@@ -13,9 +13,6 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		private int _state;
 		private bool _isError;
 
-		const string Epsilon = @"\e";
-		const string Zero = @"\z";
-
 		public DeterministicFiniteAutomaton(int startNode, IEnumerable<int> acceptingNodeSet, DFATransitionMap transitionMap, bool ignoreCase)
 		{
 			StartNode = startNode;
@@ -99,7 +96,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			return string.Join("\r\n", lines);
 		}
 
-		public string ToRegularExpression()
+		public string? ToRegularExpression()
 		{
 			var allNode = GetAllNodes();
 			var gnfa = ToGNFA();
@@ -109,44 +106,45 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			var gnfaTransMap = gnfa.Item3;
 
 			List<int> done = new();
-			foreach (var node in allNode)
+			foreach (var nodeRip in allNode)
 			{
-				done.Add(node);
+				done.Add(nodeRip);
 
 				// each node
 				var remain = allNode.Except(done);
 				foreach (var pair in DirectProductEnumerator.DP(remain, remain))
 				{
-					UpdateEdgeLabel(pair.Item1, node, pair.Item2, gnfaTransMap);
+					UpdateEdgeLabel(pair.Item1, nodeRip, pair.Item2, gnfaTransMap);
 				}
 
 				// start -> node
 				foreach (var to in remain)
 				{
-					UpdateEdgeLabel(startNode, node, to, gnfaTransMap);
+					UpdateEdgeLabel(startNode, nodeRip, to, gnfaTransMap);
 				}
 
 				// node -> accepting
 				foreach (var from in remain)
 				{
-					UpdateEdgeLabel(from, node, acceptingNode, gnfaTransMap);
+					UpdateEdgeLabel(from, nodeRip, acceptingNode, gnfaTransMap);
 				}
 
 				// start -> accepting
-				UpdateEdgeLabel(startNode, node, acceptingNode, gnfaTransMap);
+				UpdateEdgeLabel(startNode, nodeRip, acceptingNode, gnfaTransMap);
 
-				gnfaTransMap.Remove(node);
+				// remove node
+				gnfaTransMap.Remove(nodeRip);
 				foreach (var item in gnfaTransMap)
 				{
-					item.Value.RemoveAll(it => it.Head == node);
+					item.Value.RemoveAll(it => it.Head == nodeRip);
 				}
 			}
 
-			string result = gnfaTransMap[startNode].First().Tail;
+			string? result = gnfaTransMap[startNode].First().Tail;
 			return result;
 		}
 
-		private Tuple<int, int, IDictionary<int, List<Pair<int, string>>>> ToGNFA()
+		private Tuple<int, int, IDictionary<int, List<Pair<int, string?>>>> ToGNFA()
 		{
 			var e =
 				TransitionMap
@@ -154,7 +152,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 						KeyValuePair.Create(
 							it1.Key,
 							it1.Value.Select(it2 =>
-								new Pair<int, string>
+								new Pair<int, string?>
 								(
 									it2.Value,
 									it2.Key.ToRegularExpression()
@@ -162,8 +160,9 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 							).ToList()
 						)
 					);
-			IDictionary<int, List<Pair<int, string>>> newMap =
-				new Dictionary<int, List<Pair<int, string>>>(e);
+
+			IDictionary<int, List<Pair<int, string?>>> newMap =
+				new Dictionary<int, List<Pair<int, string?>>>(e);
 
 			// step 1
 			IEnumerable<int> allNode = GetAllNodes();
@@ -174,26 +173,26 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			// step 2: new start node -> each node
 			newMap.Add(
 				newStart,
-				allNode.Select(it => new Pair<int, string>(it, it == StartNode ? Epsilon : Zero)).ToList()
+				allNode.Select(it => new Pair<int, string?>(it, it == StartNode ? string.Empty : null)).ToList()
 			);
 
 			// step 3: each node -> new accepting state
 			foreach (var node in allNode)
 			{
-				if (newMap.TryGetValue(node, out List<Pair<int, string>>? tmp) && tmp != null)
+				string? label = AcceptingNodeSet.Contains(node) ? string.Empty : null;
+				if (newMap.TryGetValue(node, out List<Pair<int, string?>>? tmp) && tmp != null)
 				{
-					string label = AcceptingNodeSet.Contains(node) ? Epsilon : Zero;
-					tmp.Add(new Pair<int, string>(newAccepting, label));
+					tmp.Add(new Pair<int, string?>(newAccepting, label));
 				}
 				else
 				{
 					newMap.Add(
 						node,
-						new List<Pair<int, string>> { new Pair<int, string>(newAccepting, Zero) }
+						new List<Pair<int, string?>> { new Pair<int, string?>(newAccepting, label) }
 					);
 				}
 			}
-			newMap[newStart].Add(new Pair<int, string>(newAccepting, Zero));
+			newMap[newStart].Add(new Pair<int, string?>(newAccepting, null));
 
 			// step 4: each node -> each node
 			foreach (var node1 in allNode)
@@ -201,7 +200,7 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 				foreach (var node2 in allNode)
 				{
 					// node1 -> node2
-					if (newMap.TryGetValue(node1, out List<Pair<int, string>>? lis)
+					if (newMap.TryGetValue(node1, out List<Pair<int, string?>>? lis)
 						&& lis != null)
 					{
 						var tmp = lis.Where(it => it.Head == node2);
@@ -210,18 +209,18 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 							var tmp2 = tmp.ToList();
 							lis.RemoveAll(it => it.Head == node2);
 							string label = string.Join("|", tmp2.Select(it => it.Tail));
-							lis.Add(new Pair<int, string>(node2, label));
+							lis.Add(new Pair<int, string?>(node2, label));
 						}
 						else
 						{
-							lis.Add(new Pair<int, string>(node2, Zero));
+							lis.Add(new Pair<int, string?>(node2, null));
 						}
 					}
 					else
 					{
 						newMap.Add(
 							node1,
-							Enumerable.Repeat(new Pair<int, string>(node2, Zero), 1).ToList()
+							Enumerable.Repeat(new Pair<int, string?>(node2, null), 1).ToList()
 						);
 					}
 				}
@@ -229,64 +228,81 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			return Tuple.Create(newStart, newAccepting, newMap);
 		}
 
-		private static void UpdateEdgeLabel(int from, int rip, int to, IDictionary<int, List<Pair<int, string>>> transitionMap)
+		private static bool IsNoPath(string? label)
+		{
+			return label is null;
+		}
+
+		private static bool IsEmpty(string? label)
+		{
+			return (label is not null) && label.Length == 0;
+		}
+
+		private static void UpdateEdgeLabel(int from, int rip, int to, IDictionary<int, List<Pair<int, string?>>> transitionMap)
 		{
 			var r1 = transitionMap[from].First(it => it.Head == rip);
 			var r2 = transitionMap[rip].First(it => it.Head == rip);
 			var r3 = transitionMap[rip].First(it => it.Head == to);
 			var r4 = transitionMap[from].First(it => it.Head == to);
 
-			string result;
-			if (r1.Tail == Zero || r2.Tail == Zero || r3.Tail == Zero)
+			string? result;
+			if (IsNoPath(r1.Tail) || IsNoPath(r3.Tail))
 			{
 				result = r4.Tail;
 			}
 			else
 			{
 				string strR1;
-				if (r1.Tail == Epsilon)
+				if (IsEmpty(r1.Tail))
 				{
 					strR1 = string.Empty;
 				}
 				else
 				{
-					string tmp1 = SimplifyExpression(r1.Tail);
-					strR1 = tmp1.Contains('|') ? string.Format("({0})", r1.Tail) : r1.Tail;
+					string tmp1 = SimplifyExpression(r1.Tail)!;
+					strR1 = tmp1.Contains('|') ? $"({r1.Tail!})" : r1.Tail!;
 				}
 
-				string tmp2 = SimplifyExpression(r2.Tail);
-				string strR2 = 1 < tmp2.Length ? string.Format("({0})", r2.Tail) : r2.Tail;
+				string strR2;
+				if (IsNoPath(r2.Tail))
+				{
+					strR2 = string.Empty;
+				}
+				else
+				{
+					string tmp2 = SimplifyExpression(r2.Tail)!;
+					strR2 = 1 < tmp2.Length ? $"({r2.Tail!})*" : $"{r2.Tail!}*";
+				}
 
 				string strR3;
-				if (r3.Tail == Epsilon)
+				if (IsEmpty(r3.Tail))
 				{
 					strR3 = string.Empty;
 				}
 				else
 				{
-					string tmp3 = SimplifyExpression(r3.Tail);
-					strR3 = tmp3.Contains('|') ? string.Format("({0})", r3.Tail) : r3.Tail;
+					string tmp3 = SimplifyExpression(r3.Tail)!;
+					strR3 = tmp3.Contains('|') ? $"({r3.Tail!})" : r3.Tail!;
 				}
 
-
-				if (r4.Tail == Epsilon)
+				if (IsEmpty(r4.Tail))
 				{
-					result = string.Format("({0}{1}*{2})?", strR1, strR2, strR3);
+					result = $"({strR1}{strR2}{strR3})?";
 				}
 				else
 				{
 					string strR4;
-					if (r4.Tail == Zero)
+					if (IsNoPath(r4.Tail))
 					{
 						strR4 = string.Empty;
 					}
 					else
 					{
-						string tmp4 = SimplifyExpression(r4.Tail);
-						strR4 = tmp4.Contains('|') ? string.Format("|({0})", r4.Tail) : string.Format("|{0}", r4.Tail);
+						string tmp4 = SimplifyExpression(r4.Tail)!;
+						strR4 = tmp4.Contains('|') ? $"|({r4.Tail})" : $"|{r4.Tail}";
 					}
 
-					result = string.Format("{0}{1}*{2}{3}", strR1, strR2, strR3, strR4);
+					result = $"{strR1}{strR2}{strR3}{strR4}";
 				}
 			}
 
@@ -376,8 +392,13 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		/// </summary>
 		/// <param name="expr">regular expression</param>
 		/// <returns>replaced string</returns>
-		private static string SimplifyExpression(string expr)
+		private static string? SimplifyExpression(string? expr)
 		{
+			if (expr is null)
+			{
+				return null;
+			}
+
 			const char Replace = 'A';
 			var parens = new[] { Tuple.Create('(', ')', false), Tuple.Create('[', ']', true) };
 			var pos = ParenIndexices(expr, parens).OrderBy(it => it.Head);
