@@ -14,7 +14,7 @@ namespace Yagiey.Lib.RegularExpressions
 	{
 		private readonly DFA _dfa;
 
-		public string Source
+		public string? Source
 		{
 			get;
 			private set;
@@ -27,6 +27,21 @@ namespace Yagiey.Lib.RegularExpressions
 			NFA nfa = ToNFA(parser.EpsilonNFA);
 			DFA dfa = ToDFA(nfa, ignoreCase);
 			_dfa = MinimizeDFA(dfa, ignoreCase);
+		}
+
+		public RegularExpression(int startNode, IEnumerable<int> acceptingNodeSet, IDictionary<int, IDictionary<char, int>> transitionMap, bool ignoreCase)
+		{
+			DFATransitionMap newTransitionMap = new Dictionary<int, IDictionary<IInput, int>>();
+			foreach (var pair1 in transitionMap)
+			{
+				int node = pair1.Key;
+				var newDic = pair1.Value.Select(it => KeyValuePair.Create((IInput)new Input(it.Key), it.Value));
+				IDictionary<IInput, int> dic = new Dictionary<IInput, int>(newDic);
+				newTransitionMap.Add(node, dic);
+			}
+			DFA dfa = new(startNode, acceptingNodeSet, newTransitionMap, ignoreCase);
+			_dfa = MinimizeDFA(dfa, ignoreCase);
+			Source = _dfa.ToRegularExpression();
 		}
 
 		public override string ToString()
