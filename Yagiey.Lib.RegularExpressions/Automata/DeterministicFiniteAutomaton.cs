@@ -538,6 +538,12 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			return !result.Item1;
 		}
 
+		public bool IsNextAcceptable(char ch)
+		{
+			var result = GetNext(ch, _state, TransitionMap, IsError());
+			return result.Item1 && AcceptingNodeSet.Contains(result.Item2);
+		}
+
 		#endregion
 
 		private static char? ToCorrespondingCase(char ch)

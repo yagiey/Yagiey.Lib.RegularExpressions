@@ -427,6 +427,11 @@ namespace Yagiey.Lib.RegularExpressions
 			return _dfa.IsNextError(input);
 		}
 
+		public bool IsNextAcceptable(char input)
+		{
+			return _dfa.IsNextAcceptable(input);
+		}
+
 		#endregion
 	}
 }

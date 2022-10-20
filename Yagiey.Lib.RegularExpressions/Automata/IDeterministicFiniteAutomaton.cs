@@ -30,5 +30,10 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 		/// <param name="input">input value</param>
 		/// <returns>true: error, false: not error</returns>
 		bool IsNextError(T input);
+
+		/// <summary>check the state is acceptable or not when the state transitions with the given input character without state transition.</summary>
+		/// <param name="input">input value</param>
+		/// <returns>true: acceptable, false: not acceptable</returns>
+		bool IsNextAcceptable(T input);
 	}
 }
