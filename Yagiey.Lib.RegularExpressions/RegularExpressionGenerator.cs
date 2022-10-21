@@ -31,6 +31,8 @@ namespace Yagiey.Lib.RegularExpressions
 
 		public static RegularExpression GenerateIdentifier()
 		{
+			//[a-zA-Z_]\w*
+
 			IEnumerable<char> identifierHead =
 				Enumerable.Empty<char>()
 				.Concat(Enumerable.Range(0, 26).Select(it => Convert.ToChar('A' + it)))
@@ -57,6 +59,8 @@ namespace Yagiey.Lib.RegularExpressions
 
 		public static RegularExpression GenerateIntegerNumber()
 		{
+			//[+-]?([1-9]\d*|0)
+
 			DFATransitionMap transitionMap = new Dictionary<int, IDictionary<IInput, int>>
 			{
 				{
@@ -108,6 +112,146 @@ namespace Yagiey.Lib.RegularExpressions
 				},
 			};
 			return new RegularExpression(0, new int[] { 2, 3 }, transitionMap, false);
+		}
+
+		public static RegularExpression GenerateRealNumber()
+		{
+			//(\-|\+)?(\d+(\.\d*)?|\.\d+)((e|E)(\-|\+)?\d+)?
+			DFATransitionMap transitionMap = new Dictionary<int, IDictionary<IInput, int>>
+			{
+				{
+					0,
+					new Dictionary<IInput, int> {
+						{ new Input('+'), 1 },
+						{ new Input('-'), 1 },
+						{ new Input('.'), 2 },
+						{ new Input('0'), 7 },
+						{ new Input('1'), 7 },
+						{ new Input('2'), 7 },
+						{ new Input('3'), 7 },
+						{ new Input('4'), 7 },
+						{ new Input('5'), 7 },
+						{ new Input('6'), 7 },
+						{ new Input('7'), 7 },
+						{ new Input('8'), 7 },
+						{ new Input('9'), 7 },
+					}
+				},
+				{
+					1,
+					new Dictionary<IInput, int> {
+						{ new Input('.'), 2 },
+						{ new Input('0'), 7 },
+						{ new Input('1'), 7 },
+						{ new Input('2'), 7 },
+						{ new Input('3'), 7 },
+						{ new Input('4'), 7 },
+						{ new Input('5'), 7 },
+						{ new Input('6'), 7 },
+						{ new Input('7'), 7 },
+						{ new Input('8'), 7 },
+						{ new Input('9'), 7 },
+					}
+				},
+				{
+					2,
+					new Dictionary<IInput, int> {
+						{ new Input('0'), 5 },
+						{ new Input('1'), 5 },
+						{ new Input('2'), 5 },
+						{ new Input('3'), 5 },
+						{ new Input('4'), 5 },
+						{ new Input('5'), 5 },
+						{ new Input('6'), 5 },
+						{ new Input('7'), 5 },
+						{ new Input('8'), 5 },
+						{ new Input('9'), 5 },
+					}
+				},
+				{
+					3,
+					new Dictionary<IInput, int> {
+						{ new Input('0'), 6 },
+						{ new Input('1'), 6 },
+						{ new Input('2'), 6 },
+						{ new Input('3'), 6 },
+						{ new Input('4'), 6 },
+						{ new Input('5'), 6 },
+						{ new Input('6'), 6 },
+						{ new Input('7'), 6 },
+						{ new Input('8'), 6 },
+						{ new Input('9'), 6 },
+					}
+				},
+				{
+					4,
+					new Dictionary<IInput, int> {
+						{ new Input('+'), 3 },
+						{ new Input('-'), 3 },
+						{ new Input('0'), 6 },
+						{ new Input('1'), 6 },
+						{ new Input('2'), 6 },
+						{ new Input('3'), 6 },
+						{ new Input('4'), 6 },
+						{ new Input('5'), 6 },
+						{ new Input('6'), 6 },
+						{ new Input('7'), 6 },
+						{ new Input('8'), 6 },
+						{ new Input('9'), 6 },
+					}
+				},
+				{
+					5,
+					new Dictionary<IInput, int> {
+						{ new Input('0'), 5 },
+						{ new Input('1'), 5 },
+						{ new Input('2'), 5 },
+						{ new Input('3'), 5 },
+						{ new Input('4'), 5 },
+						{ new Input('5'), 5 },
+						{ new Input('6'), 5 },
+						{ new Input('7'), 5 },
+						{ new Input('8'), 5 },
+						{ new Input('9'), 5 },
+						{ new Input('E'), 4 },
+						{ new Input('e'), 4 },
+					}
+				},
+				{
+					6,
+					new Dictionary<IInput, int> {
+						{ new Input('0'), 6 },
+						{ new Input('1'), 6 },
+						{ new Input('2'), 6 },
+						{ new Input('3'), 6 },
+						{ new Input('4'), 6 },
+						{ new Input('5'), 6 },
+						{ new Input('6'), 6 },
+						{ new Input('7'), 6 },
+						{ new Input('8'), 6 },
+						{ new Input('9'), 6 },
+					}
+				},
+				{
+					7,
+					new Dictionary<IInput, int> {
+						{ new Input('.'), 5 },
+						{ new Input('0'), 7 },
+						{ new Input('1'), 7 },
+						{ new Input('2'), 7 },
+						{ new Input('3'), 7 },
+						{ new Input('4'), 7 },
+						{ new Input('5'), 7 },
+						{ new Input('6'), 7 },
+						{ new Input('7'), 7 },
+						{ new Input('8'), 7 },
+						{ new Input('9'), 7 },
+						{ new Input('E'), 4 },
+						{ new Input('e'), 4 },
+					}
+				},
+			};
+			return new RegularExpression(0, new int[] { 5, 6, 7 }, transitionMap, false);
 		}
 
 		public static RegularExpression GenerateCppStyleLineComment()
