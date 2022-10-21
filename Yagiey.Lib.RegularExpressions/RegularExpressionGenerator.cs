@@ -153,6 +153,49 @@ namespace Yagiey.Lib.RegularExpressions
 			return new RegularExpression(0, new int[] { 4 }, transitionMap, false);
 		}
 
+		public static RegularExpression GenerateSqlStyleLineComment()
+		{
+			DFATransitionMap transitionMap = new Dictionary<int, IDictionary<IInput, int>>
+			{
+				{
+					0,
+					new Dictionary<IInput, int> {
+						{ new Input('-'), 1 },
+					}
+				},
+				{
+					1,
+					new Dictionary<IInput, int> {
+						{ new Input('-'), 2 },
+					}
+				},
+				{
+					2,
+					new Dictionary<IInput, int> {
+						{ new Input('\r'), 3 },
+						{ new Input('\n'), 4 },
+						{ new InputWithPredicate(
+							new And<char>(
+								new List<IUnaryFunctionObject<bool,char>>
+								{
+									new Not<char>(new Equal<char>('\r')),
+									new Not<char>(new Equal<char>('\n')),
+								}
+							)
+						), 2 },
+					}
+				},
+				{
+					3,
+					new Dictionary<IInput, int> {
+						{ new Input('\n'), 4 },
+						{ new InputWithPredicate(new Not<char>(new Equal<char>('\n'))), 2 },
+					}
+				},
+			};
+			return new RegularExpression(0, new int[] { 4 }, transitionMap, false);
+		}
+
 		public static RegularExpression GenerateCStyleBlockComment()
 		{
 			DFATransitionMap transitionMap = new Dictionary<int, IDictionary<IInput, int>>
