@@ -44,6 +44,13 @@ namespace Yagiey.Lib.RegularExpressions
 			Source = _dfa.ToRegularExpression();
 		}
 
+		internal RegularExpression(int startNode, IEnumerable<int> acceptingNodeSet, DFATransitionMap transitionMap, bool ignoreCase)
+		{
+			DFA dfa = new(startNode, acceptingNodeSet, transitionMap, ignoreCase);
+			_dfa = MinimizeDFA(dfa, ignoreCase);
+			Source = _dfa.ToRegularExpression();
+		}
+
 		public override string ToString()
 		{
 			return _dfa.ToString();
