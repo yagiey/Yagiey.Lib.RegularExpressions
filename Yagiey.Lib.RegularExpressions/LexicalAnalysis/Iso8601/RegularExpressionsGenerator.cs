@@ -9,8 +9,13 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Iso8601
 	{
 		public static DFA Date()
 		{
+			return Date(StringAffix.Empty);
+		}
+
+		public static DFA Date(StringAffix affix)
+		{
 			Tuple<string, string> patterns = GetDatePattern();
-			return new NegativeLookahead(patterns.Item1, patterns.Item2, false);
+			return new NegativeLookahead(affix, patterns.Item1, patterns.Item2, false);
 		}
 
 		public static Tuple<string, string> GetDatePattern()
@@ -43,8 +48,15 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Iso8601
 
 		public static DFA Time()
 		{
+			return Time(StringAffix.Empty);
+		}
+
+		public static DFA Time(StringAffix affix)
+		{
 			string pattern = GetTimePattern();
-			return new RegularExpression(pattern, false);
+			string prefix = Constants.Sanitize(affix.Prefix);
+			string suffix = Constants.Sanitize(affix.Suffix);
+			return new RegularExpression($"{prefix}({pattern}){suffix}", false);
 		}
 
 		public static string GetTimePattern()

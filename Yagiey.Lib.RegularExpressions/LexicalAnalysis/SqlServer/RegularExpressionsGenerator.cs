@@ -72,8 +72,9 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.SqlServer
 
 		public static DFA DateNumericMonth(DateNumericMonthFormatEnum dateFormatEnum, DateSeparatorEnum dateSeparatorEnum)
 		{
+			StringAffix affix = StringAffix.SingleQuoted;
 			var patterns = GetDatePattern(dateFormatEnum, dateSeparatorEnum);
-			return new NegativeLookahead(patterns.Item1, patterns.Item2, false);
+			return new NegativeLookahead(affix, patterns.Item1, patterns.Item2, false);
 		}
 
 		public static Tuple<string, string> GetDatePattern(DateNumericMonthFormatEnum dateFormatEnum, DateSeparatorEnum dateSeparatorEnum)

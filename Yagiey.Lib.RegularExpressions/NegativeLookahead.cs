@@ -6,13 +6,26 @@ namespace Yagiey.Lib.RegularExpressions
 	public class NegativeLookahead : IDeterministicFiniteAutomaton<char>
 	{
 		private readonly RegularExpression _head;
-
 		private readonly RegularExpression _main;
 
 		public NegativeLookahead(string patternNegativeHead, string patternMain, bool ignoreCase)
 		{
-			_head = new RegularExpression(patternNegativeHead + @"(.*)", ignoreCase);
-			_main = new RegularExpression(patternMain, ignoreCase);
+			const string repeat = @"(.*)";
+
+			_head = new($"({patternNegativeHead}){repeat}", ignoreCase);
+			_main = new(patternMain, ignoreCase);
+			NegativeHead = _head.Source!;
+			Main = _main.Source!;
+		}
+
+		public NegativeLookahead(StringAffix affix, string patternNegativeHead, string patternMain, bool ignoreCase)
+		{
+			const string repeat = @"(.*)";
+			string prefix = Constants.Sanitize(affix.Prefix);
+			string suffix = Constants.Sanitize(affix.Suffix);
+
+			_head = new($"{prefix}({patternNegativeHead}){repeat}", ignoreCase);
+			_main = new($"{prefix}({patternMain}){suffix}", ignoreCase);
 			NegativeHead = _head.Source!;
 			Main = _main.Source!;
 		}

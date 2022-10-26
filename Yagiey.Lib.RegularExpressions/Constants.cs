@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Yagiey.Lib.RegularExpressions
 {
-	internal class Constants
+	public class Constants
 	{
 		public const char Backslash = '\\';
 		public const char Dot = '.';
@@ -36,6 +36,29 @@ namespace Yagiey.Lib.RegularExpressions
 		public const char EscapedWhiteSpace = 's';
 		public const char EscapedIdentifier = 'w';
 
+		public static IEnumerable<char> Operators
+		{
+			get
+			{
+				return Enumerable.Empty<char>()
+					.Append(Backslash)
+					.Append(Dot)
+					.Append(LParen)
+					.Append(RParen)
+					.Append(VerticalBar)
+					.Append(Asterisk)
+					.Append(Question)
+					.Append(Hat)
+					.Append(LBracket)
+					.Append(RBracket)
+					.Append(LBrace)
+					.Append(RBrace)
+					.Append(Plus)
+					.Append(Minus)
+					;
+			}
+		}
+
 		public static IEnumerable<char> ControlCharacters
 		{
 			get
@@ -59,6 +82,20 @@ namespace Yagiey.Lib.RegularExpressions
 					.Append(EscapedIdentifier)
 					;
 			}
+		}
+
+		public static string Sanitize(char ch)
+		{
+			return
+				Operators.Any(it => it == ch) ?
+				$"{Backslash}{ch}" :
+				ch.ToString();
+		}
+
+		public static string Sanitize(string str)
+		{
+			var sanitized = str.Select(ch => Sanitize(ch));
+			return string.Join(string.Empty, sanitized);
 		}
 	}
 }
