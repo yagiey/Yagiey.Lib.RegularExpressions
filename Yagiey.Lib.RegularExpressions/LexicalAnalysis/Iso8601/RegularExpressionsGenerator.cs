@@ -69,5 +69,17 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Iso8601
 			const string sep = @":";
 			return $@"({HH}{sep}{MM}{sep}{SS}(\.{FractionalSeconds})?)";
 		}
+
+		public static DFA DateTime()
+		{
+			return DateTime(StringAffix.Empty);
+		}
+
+		public static DFA DateTime(StringAffix affix)
+		{
+			var patternsDate = GetDatePattern();
+			string patternTime = GetTimePattern();
+			return new NegativeLookahead(affix, patternsDate.Item1, $"{patternsDate.Item2}T{patternTime}", false);
+		}
 	}
 }
