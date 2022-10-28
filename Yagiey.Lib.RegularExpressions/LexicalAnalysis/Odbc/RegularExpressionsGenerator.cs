@@ -1,0 +1,38 @@
+﻿using Yagiey.Lib.RegularExpressions.Automata;
+
+namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Odbc
+{
+	using DFA = IDeterministicFiniteAutomaton<char>;
+
+	/// <summary></summary>
+	/// <see cref="https://learn.microsoft.com/en-us/sql/odbc/reference/appendixes/date-time-and-timestamp-escape-sequences?view=sql-server-ver16"/>
+	public class RegularExpressionsGenerator
+	{
+		public static DFA Date()
+		{
+			// {d '1995-01-15'}
+			var patterns = Iso8601.RegularExpressionsGenerator.GetDatePattern();
+			string pat1 = @$"\{{\s*(d|D)\s*'({patterns.Item1})";
+			string pat2 = @$"\{{\s*(d|D)\s*'({patterns.Item2})'\s*\}}";
+			return new NegativeLookahead($"{pat1}", $"{pat2}", false);
+		}
+
+		public static DFA Time()
+		{
+			// {t 'hh:mm:ss[.fractional seconds]'}
+			const int DigitsFsec = 7;
+			string pattern = Iso8601.RegularExpressionsGenerator.GetTimePattern(DigitsFsec);
+			return new RegularExpression(@$"\{{\s*(t|T)\s*'({pattern})'\s*\}}", false);
+		}
+
+		public static DFA DateTime()
+		{
+			// { ts 'yyyy-mm-dd hh:mm:ss[.fractional seconds]' }
+			const int DigitsFsec = 7;
+			var patternsDate = Iso8601.RegularExpressionsGenerator.GetDatePattern();
+			string patternTime = Iso8601.RegularExpressionsGenerator.GetTimePattern(DigitsFsec);
+			return new NegativeLookahead(@$"\{{\s*((t|T)(s|S))\s*'{patternsDate.Item1}", @$"\{{\s*((t|T)(s|S))\s*'{patternsDate.Item2} {patternTime}'\s*\}}", false);
+		}
+
+	}
+}
