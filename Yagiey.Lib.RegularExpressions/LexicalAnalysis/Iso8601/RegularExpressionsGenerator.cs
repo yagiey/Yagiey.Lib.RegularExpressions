@@ -77,7 +77,7 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Iso8601
 			string fractionalSeconds = @$"({string.Join("|", listOr)})";
 
 			const string sep = @":";
-			return $@"({HH}{sep}{MM}{sep}{SS}(\.{fractionalSeconds})?)";
+			return $@"({HH}{sep}{MM}({sep}{SS}(\.{fractionalSeconds})?)?)";
 		}
 
 		public static DFA DateTime()
