@@ -92,5 +92,34 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Iso8601
 			string patternTime = GetTimePattern(DigitsFsec);
 			return new NegativeLookahead(affix, patternsDate.Item1, $"{patternsDate.Item2}T{patternTime}", false);
 		}
+
+		public static DFA DateTimeOffset()
+		{
+			return DateTimeOffset(StringAffix.Empty);
+		}
+
+		public static DFA DateTimeOffset(StringAffix affix)
+		{
+			// YYYY-MM-DDThh:mm:ss[.nnnnnnn][{+|-}hh:mm]
+			// YYYY-MM-DDThh:mm:ss[.nnnnnnn]Z (UTC)
+
+			const int DigitsFsec = 9;
+			var patternsDate = GetDatePattern();
+			string patternTime = GetTimePattern(DigitsFsec);
+			string patternOffset = GetOffsetPattern();
+
+			return new NegativeLookahead(affix, patternsDate.Item1, $"{patternsDate.Item2}T{patternTime}{patternOffset}", false);
+		}
+
+		public static string GetOffsetPattern()
+		{
+			// 00:00-13:59,14:00
+			const string HHMM1 = @$"(0\d|1(0|1|2|3)):(0|1|2|3|4|5)\d";
+			const string HHMM2 = @$"14:00";
+			const string Offset1 = @$"(\+|-)(({HHMM1})|{HHMM2})";
+			const string Offset2 = @"Z";
+			const string Offset = $@"(({Offset1})|({Offset2}))";
+			return Offset;
+		}
 	}
 }
