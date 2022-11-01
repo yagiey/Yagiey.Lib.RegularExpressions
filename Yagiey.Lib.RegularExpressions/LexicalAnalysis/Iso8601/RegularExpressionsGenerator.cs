@@ -117,7 +117,7 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Iso8601
 			const string HHMM1 = @$"(0\d|1(0|1|2|3)):(0|1|2|3|4|5)\d";
 			const string HHMM2 = @$"14:00";
 			const string Offset1 = @$"(\+|-)(({HHMM1})|{HHMM2})";
-			const string Offset2 = @"Z";
+			const string Offset2 = @"(Z|z)";
 			const string Offset = $@"(({Offset1})|({Offset2}))";
 			return Offset;
 		}
