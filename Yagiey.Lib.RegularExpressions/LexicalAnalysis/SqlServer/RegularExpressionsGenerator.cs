@@ -72,7 +72,13 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.SqlServer
 
 		public static DFA DateNumericMonth(DateNumericMonthFormatEnum dateFormatEnum, DateSeparatorEnum dateSeparatorEnum)
 		{
-			StringAffix affix = StringAffix.SingleQuoted;
+			var patterns = GetDatePattern(dateFormatEnum, dateSeparatorEnum);
+			return new NegativeLookahead(patterns.Item1, patterns.Item2, false);
+
+		}
+
+		public static DFA DateNumericMonth(StringAffix affix, DateNumericMonthFormatEnum dateFormatEnum, DateSeparatorEnum dateSeparatorEnum)
+		{
 			var patterns = GetDatePattern(dateFormatEnum, dateSeparatorEnum);
 			return new NegativeLookahead(affix, patterns.Item1, patterns.Item2, false);
 		}
@@ -135,6 +141,89 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.SqlServer
 					{
 						return
 							Tuple.Create($"({parts01Y}{separator}{parts01M}{separator}{parts01D})", $"(({parts02Y}{separator}{parts02M}{separator}{parts02D})|({parts03Y}{separator}{parts03M}{separator}{parts03D})|({parts04Y}{separator}{parts04M}{separator}{parts04D})|({parts05Y}{separator}{parts05M}{separator}{parts05D}))");
+					}
+			}
+		}
+
+		public static DFA DateAlphabeticMonth(DateAlphabeticMonthFormatEnum dateFormatEnum)
+		{
+			var patterns = GetDatePattern(dateFormatEnum);
+			return new NegativeLookahead(patterns.Item1, patterns.Item2, false);
+		}
+
+		public static DFA DateAlphabeticMonth(StringAffix affix, DateAlphabeticMonthFormatEnum dateFormatEnum)
+		{
+			var patterns = GetDatePattern(dateFormatEnum);
+			return new NegativeLookahead(affix, patterns.Item1, patterns.Item2, false);
+		}
+
+		public static Tuple<string, string> GetDatePattern(DateAlphabeticMonthFormatEnum dateFormatEnum)
+		{
+			const string parts01M = @"(February|Feb\.)";
+			const string parts01D = @"(29)";
+			const string parts01Y = @"((0|2|4|6|8)(1|2|3|5|6|7|9)|(1|3|5|7|9)(0|1|3|4|5|7|8|9))00";
+
+			const string PatternYYYY1 = @"((1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)|0(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)|00(1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)|000(1|2|3|4|5|6|7|8|9))";
+
+			const string parts02M = @"(January|Jan\.|March|Mar\.|May|May\.|July|Jul\.|August|Aug\.|October|Oct\.|December|Dec\.)";
+			const string parts02D = @"(0(1|2|3|4|5|6|7|8|9)|(1|2)(0|1|2|3|4|5|6|7|8|9)|3(0|1))";
+			const string parts02Y = PatternYYYY1;
+
+			const string parts03M = @"(April|Apr\.|June|Jun\.|September|Sep\.|November|Nov\.)";
+			const string parts03D = @"(0(1|2|3|4|5|6|7|8|9)|(1|2)(0|1|2|3|4|5|6|7|8|9)|30)";
+			const string parts03Y = PatternYYYY1;
+
+			const string parts04M = @"(February|Feb\.)";
+			const string parts04D = @"(0(1|2|3|4|5|6|7|8|9)|1(0|1|2|3|4|5|6|7|8|9)|2(0|1|2|3|4|5|6|7|8))";
+			const string parts04Y = PatternYYYY1;
+
+			const string parts05M = @"(February|Feb\.)";
+			const string parts05D = @"(29)";
+			const string parts05Y = @"((((1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)|0(1|2|3|4|5|6|7|8|9))(0|2|4|6|8)|00(2|4|6|8))(0|4|8)|((((1|2|3|4|5|6|7|8|9)(0|1|2|3|4|5|6|7|8|9)|0(1|2|3|4|5|6|7|8|9))(1|3|5|7|9)|00(1|3|5|7|9))(2|6)|000(4|8)))";
+
+			switch (dateFormatEnum)
+			{
+				// mon dd[,] yyyy
+				case DateAlphabeticMonthFormatEnum.Mdy:
+					{
+						return
+							Tuple.Create(@$"({parts01M} {parts01D},? {parts01Y})", @$"(({parts02M} {parts02D},? {parts02Y})|({parts03M} {parts03D},? {parts03Y})|({parts04M} {parts04D},? {parts04Y})|({parts05M} {parts05D},? {parts05Y}))");
+					}
+
+				// mon yyyy dd
+				case DateAlphabeticMonthFormatEnum.Myd:
+					{
+						return
+							Tuple.Create(@$"({parts01M} {parts01Y} {parts01D})", @$"(({parts02M} {parts02Y} {parts02D})|({parts03M} {parts03Y} {parts03D})|({parts04M} {parts04Y} {parts04D})|({parts05M} {parts05Y} {parts05D}))");
+					}
+
+				// dd mon[,] yyyy
+				case DateAlphabeticMonthFormatEnum.Dmy:
+					{
+						return
+							Tuple.Create(@$"({parts01D} {parts01M},? {parts01Y})", @$"(({parts02D} {parts02M},? {parts02Y})|({parts03D} {parts03M},? {parts03Y})|({parts04D} {parts04M},? {parts04Y})|({parts05D} {parts05M},? {parts05Y}))");
+					}
+
+				// dd yyyy mon
+				case DateAlphabeticMonthFormatEnum.Dym:
+					{
+						return
+							Tuple.Create(@$"({parts01D} {parts01Y} {parts01M})", @$"(({parts02D} {parts02Y} {parts02M})|({parts03D} {parts03Y} {parts03M})|({parts04D} {parts04Y} {parts04M})|({parts05D} {parts05Y} {parts05M}))");
+					}
+
+				// yyyy mon dd
+				case DateAlphabeticMonthFormatEnum.Ymd:
+				default:
+					{
+						return
+							Tuple.Create(@$"({parts01Y} {parts01M} {parts01D})", @$"(({parts02Y} {parts02M} {parts02D})|({parts03Y} {parts03M} {parts03D})|({parts04Y} {parts04M} {parts04D})|({parts05Y} {parts05M} {parts05D}))");
+					}
+
+				// yyyy dd mon
+				case DateAlphabeticMonthFormatEnum.Ydm:
+					{
+						return
+							Tuple.Create(@$"({parts01Y} {parts01D} {parts01M})", @$"(({parts02Y} {parts02D} {parts02M})|({parts03Y} {parts03D} {parts03M})|({parts04Y} {parts04D} {parts04M})|({parts05Y} {parts05D} {parts05M}))");
 					}
 			}
 		}
