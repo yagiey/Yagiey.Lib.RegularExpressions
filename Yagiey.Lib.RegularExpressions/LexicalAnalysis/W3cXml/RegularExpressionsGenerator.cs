@@ -9,7 +9,9 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.W3cXml
 	{
 		public static DFA Date()
 		{
-			return Date(StringAffix.Empty);
+			Tuple<string, string> patternsDate = Iso8601.RegularExpressionsGenerator.GetDatePattern();
+			string patternOffset = Iso8601.RegularExpressionsGenerator.GetOffsetPattern();
+			return new NegativeLookahead(patternsDate.Item1, @$"({patternsDate.Item2})({patternOffset})", false);
 		}
 
 		public static DFA Date(StringAffix affix)

@@ -10,7 +10,8 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Iso8601
 	{
 		public static DFA Date()
 		{
-			return Date(StringAffix.Empty);
+			Tuple<string, string> patterns = GetDatePattern();
+			return new NegativeLookahead(patterns.Item1, patterns.Item2, false);
 		}
 
 		public static DFA Date(StringAffix affix)
@@ -49,7 +50,9 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Iso8601
 
 		public static DFA Time()
 		{
-			return Time(StringAffix.Empty);
+			const int DigitsFsec = 9;
+			string pattern = GetTimePattern(DigitsFsec);
+			return new RegularExpression(pattern, false);
 		}
 
 		public static DFA Time(StringAffix affix)
@@ -82,7 +85,10 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Iso8601
 
 		public static DFA DateTime()
 		{
-			return DateTime(StringAffix.Empty);
+			const int DigitsFsec = 9;
+			var patternsDate = GetDatePattern();
+			string patternTime = GetTimePattern(DigitsFsec);
+			return new NegativeLookahead(patternsDate.Item1, $"{patternsDate.Item2}T{patternTime}", false);
 		}
 
 		public static DFA DateTime(StringAffix affix)
@@ -95,19 +101,23 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Iso8601
 
 		public static DFA DateTimeOffset()
 		{
-			return DateTimeOffset(StringAffix.Empty);
+			// YYYY-MM-DDThh:mm:ss[.nnnnnnn][{+|-}hh:mm]
+			// YYYY-MM-DDThh:mm:ss[.nnnnnnn]Z (UTC)
+			const int DigitsFsec = 9;
+			var patternsDate = GetDatePattern();
+			string patternTime = GetTimePattern(DigitsFsec);
+			string patternOffset = GetOffsetPattern();
+			return new NegativeLookahead(patternsDate.Item1, $"{patternsDate.Item2}T{patternTime}{patternOffset}", false);
 		}
 
 		public static DFA DateTimeOffset(StringAffix affix)
 		{
 			// YYYY-MM-DDThh:mm:ss[.nnnnnnn][{+|-}hh:mm]
 			// YYYY-MM-DDThh:mm:ss[.nnnnnnn]Z (UTC)
-
 			const int DigitsFsec = 9;
 			var patternsDate = GetDatePattern();
 			string patternTime = GetTimePattern(DigitsFsec);
 			string patternOffset = GetOffsetPattern();
-
 			return new NegativeLookahead(affix, patternsDate.Item1, $"{patternsDate.Item2}T{patternTime}{patternOffset}", false);
 		}
 
