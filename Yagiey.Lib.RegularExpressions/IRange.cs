@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace Yagiey.Lib.RegularExpressions.Functions
+namespace Yagiey.Lib.RegularExpressions
 {
-	internal interface IRange<T> : IUnaryFunctionObject<bool, T> where T : IComparable<T>
+	internal interface IRange<T> where T : IComparable<T>
 	{
 		bool IsLowerBounded();
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Yagiey.Lib.RegularExpressions.Functions
 {
-	internal class GELE<T> : IRange<T>, IComparable<GELE<T>>, IEquatable<GELE<T>>
+	internal class GELE<T> : IRange<T>, IUnaryFunctionObject<bool, T>, IComparable<GELE<T>>, IEquatable<GELE<T>>
 		where T : IComparable<T>, IEquatable<T>
 	{
 		private readonly T _lowerLimit;
