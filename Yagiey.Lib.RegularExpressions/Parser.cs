@@ -287,8 +287,8 @@ namespace Yagiey.Lib.RegularExpressions
 			char? next1 = itorToken.Current.Item2[0];
 			bool isNegative = next1.HasValue && next1 == Constants.Hat;
 
-			List<Tuple<char, char>> ranges = new();
-			List<char> characters = new();
+			HashSet<Tuple<char, char>> ranges = new();
+			HashSet<char> characters = new();
 
 			bool isFirst = true;
 			while (true)
@@ -355,7 +355,20 @@ namespace Yagiey.Lib.RegularExpressions
 					currentChar = current.Item2;
 					char ch2 = currentChar;
 
-					ranges.Add(Tuple.Create(ch1, ch2));
+					if(ch1 == ch2)
+					{
+						// same two characters
+						characters.Add(ch1);
+					}
+					else
+					{
+						if (ch2 < ch1)
+						{
+							// swap
+							(ch1, ch2) = (ch2, ch1);
+						}
+						ranges.Add(Tuple.Create(ch1, ch2));
+					}
 				}
 				else
 				{
