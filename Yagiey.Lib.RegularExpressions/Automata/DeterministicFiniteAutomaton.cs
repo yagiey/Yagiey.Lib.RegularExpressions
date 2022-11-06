@@ -438,8 +438,13 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 
 		public void Reset()
 		{
-			_state = 0;
-			_isError = false;
+			Reset(0, false);
+		}
+
+		private void Reset(int state, bool isError)
+		{
+			_state = state;
+			_isError = isError;
 		}
 
 		public void MoveNext(char ch)
@@ -520,11 +525,20 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 
 		public bool IsAcceptable(IEnumerable<char> source)
 		{
+			int oldState = _state;
+			bool oldIsError = _isError;
 			foreach (char ch in source)
 			{
 				MoveNext(ch);
+				if (_isError)
+				{
+					Reset(oldState, oldIsError);
+					return false;
+				}
 			}
-			return IsAcceptable();
+			bool result = IsAcceptable();
+			Reset(oldState, oldIsError);
+			return result;
 		}
 
 		public bool IsError()
