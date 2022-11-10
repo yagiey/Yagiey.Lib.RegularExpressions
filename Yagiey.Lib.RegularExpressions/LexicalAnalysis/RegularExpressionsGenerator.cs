@@ -477,9 +477,9 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis
 
 		public static string GetTimePattern(int digitsFsec)
 		{
-			if (digitsFsec <= 0 || 10 <= digitsFsec)
+			if (digitsFsec < 0 || 9 < digitsFsec)
 			{
-				const string ErrMsg = @"number of digits of fractional seconds must be between 1 and 9.";
+				const string ErrMsg = @"number of digits of fractional seconds must be between 0 and 9.";
 				throw new ArgumentOutOfRangeException(nameof(digitsFsec), ErrMsg);
 			}
 
@@ -487,11 +487,19 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis
 			const string MM = @"(0|1|2|3|4|5)\d";
 			const string SS = @"(0|1|2|3|4|5)\d";
 
-			var listOr = Enumerable.Range(1, digitsFsec).Select(it => string.Join("", Enumerable.Repeat(@"\d", it)));
-			string fractionalSeconds = @$"({string.Join("|", listOr)})";
+			string fractionalSeconds;
+			if (digitsFsec == 0)
+			{
+				fractionalSeconds = string.Empty;
+			}
+			else
+			{
+				var listOr = Enumerable.Range(1, digitsFsec).Select(it => string.Join("", Enumerable.Repeat(@"\d", it)));
+				fractionalSeconds = @$"(\.({string.Join("|", listOr)}))?";
+			}
 
 			const string sep = @":";
-			return $@"({HH}{sep}{MM}({sep}{SS}(\.{fractionalSeconds})?)?)";
+			return $@"({HH}{sep}{MM}({sep}{SS}{fractionalSeconds})?)";
 		}
 
 		public static string GetOffsetPattern()
