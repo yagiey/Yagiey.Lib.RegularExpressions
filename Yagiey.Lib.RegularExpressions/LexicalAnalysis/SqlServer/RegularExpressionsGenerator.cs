@@ -226,5 +226,40 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.SqlServer
 					}
 			}
 		}
+
+		public static DFA Time()
+		{
+			string pattern = GetTimePattern();
+			return new RegularExpression(pattern, false);
+		}
+
+		public static DFA Time(StringAffix affix)
+		{
+			string pattern = GetTimePattern();
+			string prefix = Constants.Sanitize(affix.Prefix);
+			string suffix = Constants.Sanitize(affix.Suffix);
+			return new RegularExpression($"{prefix}({pattern}){suffix}", false);
+		}
+
+		public static string GetTimePattern()
+		{
+			// hhAM[PM]
+			// hh AM[PM]
+			const string pat1 = @"00( ?(A|a)(M|m))?";
+			const string pat2 = @"(01|02|03|04|05|06|07|08|09|10|11)( ?(A|a|P|p)(M|m))?";
+			const string pat3 = @"12( ?(A|a|P|p)(M|m))?";
+			const string pat4 = @"(13|14|15|16|17|18|19|20|21|22|23)( ?(P|p)(M|m))?";
+			string patHhOnly = $"{pat1}|{pat2}|{pat3}|{pat4}";
+
+			// hh: mm[:ss][:fractional seconds][AM][PM]
+			// hh: mm[:ss][.fractional seconds][AM][PM]
+			const string pat5 = @"00:(0|1|2|3|4|5)\d(:(0|1|2|3|4|5)\d((:|\.)(\d|\d\d|\d\d\d))?)?((A|a)(M|m))?";
+			const string pat6 = @"(01|02|03|04|05|06|07|08|09|10|11):(0|1|2|3|4|5)\d(:(0|1|2|3|4|5)\d((:|\.)(\d|\d\d|\d\d\d))?)?((A|a|P|p)(M|m))?";
+			const string pat7 = @"12:(0|1|2|3|4|5)\d(:(0|1|2|3|4|5)\d((:|\.)(\d|\d\d|\d\d\d))?)?((A|a|P|p)(M|m))?";
+			const string pat8 = @"(13|14|15|16|17|18|19|20|21|22|23):(0|1|2|3|4|5)\d(:(0|1|2|3|4|5)\d((:|\.)(\d|\d\d|\d\d\d))?)?((P|p)(M|m))?";
+			string patLongStyle = $"{pat5}|{pat6}|{pat7}|{pat8}";
+
+			return $"({patHhOnly}|{patLongStyle})";
+		}
 	}
 }
