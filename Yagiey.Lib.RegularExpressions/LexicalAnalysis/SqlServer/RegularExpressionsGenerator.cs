@@ -37,7 +37,7 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.SqlServer
 			return new RegularExpression(0, new int[] { 2 }, transitionMap, false);
 		}
 
-		public static DFA UnicodeStringLiteral()
+		public static DFA StringLiteralUnicode()
 		{
 			DFATransitionMap transitionMap = new Dictionary<int, IDictionary<IInput, int>>
 			{
@@ -74,7 +74,6 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.SqlServer
 		{
 			var patterns = GetDatePattern(dateFormatEnum, dateSeparatorEnum);
 			return new NegativeLookahead(patterns.Item1, patterns.Item2, false);
-
 		}
 
 		public static DFA DateNumericMonth(StringAffix affix, DateNumericMonthFormatEnum dateFormatEnum, DateSeparatorEnum dateSeparatorEnum)
