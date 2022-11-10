@@ -448,6 +448,18 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis
             return new RegularExpression(0, new int[] { 5, 6, 7 }, transitionMap, false);
         }
 
+		public static DFA Date()
+		{
+			Tuple<string, string> patterns = GetDatePattern(string.Empty);
+			return new NegativeLookahead(patterns.Item1, patterns.Item2, false);
+		}
+
+		public static DFA Date(StringAffix affix)
+		{
+			Tuple<string, string> patterns = GetDatePattern(string.Empty);
+			return new NegativeLookahead(affix, patterns.Item1, patterns.Item2, false);
+		}
+
 		public static Tuple<string, string> GetDatePattern(string separator)
 		{
 			const string parts01M = @"(02)";
