@@ -11,7 +11,7 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Odbc
 		public static DFA Date()
 		{
 			// {d '1995-01-15'}
-			var patterns = Iso8601.RegularExpressionsGenerator.GetDatePattern();
+			var patterns = LexicalAnalysis.RegularExpressionsGenerator.GetDatePattern("-");
 			string pat1 = @$"\{{\s*(d|D)\s*'({patterns.Item1})";
 			string pat2 = @$"\{{\s*(d|D)\s*'({patterns.Item2})'\s*\}}";
 			return new NegativeLookahead($"{pat1}", $"{pat2}", false);
@@ -20,7 +20,7 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Odbc
 		public static DFA Date(StringAffix affix)
 		{
 			// {d '1995-01-15'}
-			var patterns = Iso8601.RegularExpressionsGenerator.GetDatePattern();
+			var patterns = LexicalAnalysis.RegularExpressionsGenerator.GetDatePattern("-");
 			string pat1 = @$"\{{\s*(d|D)\s*'({patterns.Item1})";
 			string pat2 = @$"\{{\s*(d|D)\s*'({patterns.Item2})'\s*\}}";
 			return new NegativeLookahead(affix, pat1, pat2, false);
@@ -30,7 +30,7 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Odbc
 		{
 			// {t 'hh:mm:ss[.fractional seconds]'}
 			const int DigitsFsec = 7;
-			string pattern = Iso8601.RegularExpressionsGenerator.GetTimePattern(DigitsFsec);
+			string pattern = LexicalAnalysis.RegularExpressionsGenerator.GetTimePattern(DigitsFsec);
 			return new RegularExpression(@$"\{{\s*(t|T)\s*'({pattern})'\s*\}}", false);
 		}
 
@@ -40,7 +40,7 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Odbc
 			string prefix = Constants.Sanitize(affix.Prefix);
 			string suffix = Constants.Sanitize(affix.Suffix);
 			const int DigitsFsec = 7;
-			string pattern = Iso8601.RegularExpressionsGenerator.GetTimePattern(DigitsFsec);
+			string pattern = LexicalAnalysis.RegularExpressionsGenerator.GetTimePattern(DigitsFsec);
 			return new RegularExpression(@$"{prefix}\{{\s*(t|T)\s*'({pattern})'\s*\}}{suffix}", false);
 		}
 
@@ -48,8 +48,8 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Odbc
 		{
 			// { ts 'yyyy-mm-dd hh:mm:ss[.fractional seconds]' }
 			const int DigitsFsec = 7;
-			var patternsDate = Iso8601.RegularExpressionsGenerator.GetDatePattern();
-			string patternTime = Iso8601.RegularExpressionsGenerator.GetTimePattern(DigitsFsec);
+			var patternsDate = LexicalAnalysis.RegularExpressionsGenerator.GetDatePattern("-");
+			string patternTime = LexicalAnalysis.RegularExpressionsGenerator.GetTimePattern(DigitsFsec);
 			return new NegativeLookahead(@$"\{{\s*((t|T)(s|S))\s*'{patternsDate.Item1}", @$"\{{\s*((t|T)(s|S))\s*'{patternsDate.Item2} {patternTime}'\s*\}}", false);
 		}
 
@@ -57,8 +57,8 @@ namespace Yagiey.Lib.RegularExpressions.LexicalAnalysis.Odbc
 		{
 			// { ts 'yyyy-mm-dd hh:mm:ss[.fractional seconds]' }
 			const int DigitsFsec = 7;
-			var patternsDate = Iso8601.RegularExpressionsGenerator.GetDatePattern();
-			string patternTime = Iso8601.RegularExpressionsGenerator.GetTimePattern(DigitsFsec);
+			var patternsDate = LexicalAnalysis.RegularExpressionsGenerator.GetDatePattern("-");
+			string patternTime = LexicalAnalysis.RegularExpressionsGenerator.GetTimePattern(DigitsFsec);
 			return new NegativeLookahead(affix, @$"\{{\s*((t|T)(s|S))\s*'{patternsDate.Item1}", @$"\{{\s*((t|T)(s|S))\s*'{patternsDate.Item2} {patternTime}'\s*\}}", false);
 		}
 	}
