@@ -100,10 +100,12 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 				}
 				else
 				{
-					dic[input] = e.Append(end);
+					if (!e.Contains(end))
+					{
+						dic[input] = e.Append(end);
+					}
 				}
 			}
-
 		}
 
 		public static NFATransitionMap AddTransition(NFATransitionMap transitionMap, int node, IInput input, IEnumerable<int> dest)
