@@ -140,7 +140,15 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 
 		public override string ToString()
 		{
-			return "(GELE " + _lowerLimit + " " + _upperLimit + ")";
+			string lowerLimit = _lowerLimit.ToString();
+			string upperLimit = _upperLimit.ToString();
+
+			if (typeof(T) == typeof(char))
+			{
+				lowerLimit = $"'{_lowerLimit}'";
+				upperLimit = $"'{_upperLimit}'";
+			}
+			return "(GELE " + lowerLimit + " " + upperLimit + ")";
 		}
 
 		public string ToRegularExpression()

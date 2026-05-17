@@ -41,6 +41,11 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 			return _predicate.Invoke(ch);
 		}
 
+		public IUnaryFunctionObject<bool, char> Predicate
+		{
+			get { return _predicate; }
+		}
+
 		public int CompareTo(InputWithPredicate? other)
 		{
 			if (other is null)

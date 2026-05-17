@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using Yagiey.Lib.RegularExpressions.Functions;
 
 namespace Yagiey.Lib.RegularExpressions.Automata
 {
@@ -105,6 +107,56 @@ namespace Yagiey.Lib.RegularExpressions.Automata
 						dic[input] = e.Append(end);
 					}
 				}
+			}
+		}
+
+		public static void AddNormalizedTransition(NFATransitionMap transitionMap, int state, IInput condition, int nextState)
+		{
+			if (condition is Input input)
+			{
+				AddTransition(transitionMap, state, input, nextState);
+			}
+			else if (condition is InputWithPredicate cond)
+			{
+				if (cond.Predicate is Not<char>)
+				{
+					// Not<T> 条件式を InputWithPredicate を利用して遷移規則に保持
+					AddTransition(transitionMap, state, cond, nextState);
+				}
+				else if (cond.Predicate is And<char>)
+				{
+					// And 条件式を InputWithPredicate を利用して遷移規則に保持
+					AddTransition(transitionMap, state, cond, nextState);
+				}
+				else if (cond.Predicate is GELE<char> range)
+				{
+					// GELE 条件をリテラル集合に展開
+					for (char c = range.LowerLimit; c <= range.UpperLimit; c++)
+					{
+						AddTransition(transitionMap, state, new Input(c), nextState);
+					}
+				}
+				else if (cond.Predicate is Or<char> orCondition)
+				{
+					// Or 条件を個別条件に分解
+					foreach (var subCondition in orCondition.Predicates)
+					{
+						AddNormalizedTransition(transitionMap, state, new InputWithPredicate(subCondition), nextState);
+					}
+				}
+				else if (cond.Predicate is Equal<char> equalCondition)
+				{
+					var c = equalCondition.Value;
+					AddTransition(transitionMap, state, new Input(c), nextState);
+				}
+				else
+				{
+					throw new ArgumentException("未対応の条件式が指定されました");
+				}
+			}
+			else
+			{
+				throw new ArgumentException("未対応の条件式が指定されました");
 			}
 		}
 

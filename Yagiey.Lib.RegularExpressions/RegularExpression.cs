@@ -98,7 +98,12 @@ namespace Yagiey.Lib.RegularExpressions
 					{
 						continue;
 					}
-					NFA.AddTransition(newTransitionMap, node, input, destination);
+
+					//NFA.AddTransition(newTransitionMap, node, input, destination);
+					foreach (var dest in destination)
+					{
+						NFA.AddNormalizedTransition(newTransitionMap, node, input, dest);
+					}
 				}
 			}
 

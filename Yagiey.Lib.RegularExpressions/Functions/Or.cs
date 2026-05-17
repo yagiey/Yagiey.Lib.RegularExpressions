@@ -16,6 +16,11 @@ namespace Yagiey.Lib.RegularExpressions.Functions
 			_predicates = predicates.OrderBy(_ => _, comp);
 		}
 
+		public IEnumerable<IUnaryFunctionObject<bool, T>> Predicates
+		{
+			get { return _predicates; }
+		}
+
 		public int CompareTo(IUnaryFunctionObject<bool, T>? other)
 		{
 			if (other is null)
